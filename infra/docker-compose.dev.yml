@@ -51,6 +51,14 @@ services:
     ports:
       - "8010:8010"
 
+  socraticode:
+    image: node:20-alpine
+    working_dir: /workspace
+    command: ["npx", "-y", "socraticode"]
+    volumes:
+      - ../:/workspace
+    profiles: ["devtools"]
+
 volumes:
   postgres_data:
   qdrant_data:

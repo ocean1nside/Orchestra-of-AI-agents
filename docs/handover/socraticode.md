@@ -15,5 +15,19 @@ SocratiCode используется **только** для разработк�
 
 ## Индексация проекта
 
-Дальнейшие шаги по индексации будут уточнены при подключении SocratiCode в dev-compose.
+### Вариант A (локально через Cursor)
+
+По умолчанию MCP-сервер SocratiCode запускается **локально** (см. `.vscode/mcp.json`) и контейнер не обязателен.
+
+### Вариант B (через Docker dev-compose)
+
+В `infra/docker-compose.dev.yml` добавлен опциональный сервис `socraticode` (dev-only) под профилем `devtools`.
+
+Запуск:
+
+```bash
+docker compose -f infra/docker-compose.dev.yml --profile devtools up -d socraticode
+```
+
+Production compose (`infra/docker-compose.yml`) **не** включает SocratiCode по требованиям ТЗ.
 
