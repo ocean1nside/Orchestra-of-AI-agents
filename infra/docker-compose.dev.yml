@@ -51,6 +51,18 @@ services:
     ports:
       - "8010:8010"
 
+  indexing-worker:
+    build:
+      context: ../apps/orchestrator-api
+    env_file:
+      - ../apps/orchestrator-api/.env.example
+    environment:
+      APP_ENV: development
+    depends_on:
+      - redis
+      - postgres
+    command: ["python", "-m", "orchestrator_api.worker"]
+
   socraticode:
     working_dir: /workspace
     image: node:20-alpine

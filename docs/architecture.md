@@ -33,6 +33,6 @@ incoming -> normalize -> search Qdrant -> load chunks from Postgres -> build pro
 
 ## Decisions (фиксируем по мере развития)
 
-- **Background queue**: TBD (Celery vs RQ). Выбор будет зафиксирован при реализации `indexing-worker`.
+- **Background queue**: **RQ** (Redis Queue) для MVP. Причина: минимальная сложность (без отдельного брокера/beat), достаточен для фоновой индексации на этом этапе.
 - **LLM provider abstraction**: интерфейс клиента должен позволять переключать провайдера без переписывания бизнес-логики.
 
