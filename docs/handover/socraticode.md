@@ -37,6 +37,8 @@ docker compose -f infra/docker-compose.dev.yml --profile devtools up -d socratic
 
 Production compose (`infra/docker-compose.yml`) **не** включает SocratiCode по требованиям ТЗ.
 
+Примечание: контейнер в этом репозитории — **dev-утилита** (с volume на проект). Реальная индексация/графы для ускорения работы агента идут через **MCP-сервер SocratiCode** в Cursor.
+
 ## Как понять, что индекс актуальный
 
 SocratiCode умеет:
