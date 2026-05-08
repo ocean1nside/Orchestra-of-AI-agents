@@ -6,11 +6,12 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 COPY pyproject.toml /app/pyproject.toml
+COPY src /app/src
+COPY alembic.ini /app/alembic.ini
+COPY alembic /app/alembic
 
 RUN pip install --no-cache-dir -U pip && \
     pip install --no-cache-dir .
-
-COPY src /app/src
 
 ENV PYTHONPATH=/app/src
 
