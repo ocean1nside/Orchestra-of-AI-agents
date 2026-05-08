@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "socraticode": {
+      "command": "npx",
+      "args": ["-y", "socraticode"]
+    }
+  }
+}
+

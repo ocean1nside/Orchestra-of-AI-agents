@@ -1,0 +1,7 @@
+# Project rules (MVP)
+
+- Backend-only. Не добавлять UI/HTML/React.
+- Orchestrator — control plane. Не делать runtime proxy user->orchestrator->agent.
+- На MVP не добавлять мультивендорность и `vendor_*` сущности/таблицы.
+- Поддерживать документацию и OpenAPI синхронно с кодом.
+
