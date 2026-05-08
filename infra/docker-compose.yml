@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: orchestrator
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.3
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  orchestrator-api:
+    build:
+      context: ../apps/orchestrator-api
+    env_file:
+      - ../apps/orchestrator-api/.env.example
+    volumes:
+      - ../storage:/storage
+    depends_on:
+      - postgres
+      - redis
+      - qdrant
+
+  vendor-support-agent:
+    build:
+      context: ../apps/agents/vendor-support-agent
+    env_file:
+      - ../apps/agents/vendor-support-agent/.env.example
+    depends_on:
+      - postgres
+      - qdrant
+
+volumes:
+  postgres_data:
+  qdrant_data:
+

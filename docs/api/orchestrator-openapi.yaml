@@ -1,0 +1,24 @@
+openapi: 3.0.3
+info:
+  title: orchestrator-api
+  version: 0.1.0
+paths:
+  /api/v1/health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /api/v1/status:
+    get:
+      summary: Status
+      responses:
+        "200":
+          description: OK
+  /api/v1/infrastructure/status:
+    get:
+      summary: Infrastructure status
+      responses:
+        "200":
+          description: OK
+

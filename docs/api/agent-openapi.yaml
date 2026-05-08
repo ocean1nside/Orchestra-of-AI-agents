@@ -1,0 +1,42 @@
+openapi: 3.0.3
+info:
+  title: vendor-support-agent
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /metadata:
+    get:
+      summary: Agent metadata
+      responses:
+        "200":
+          description: OK
+  /api/v1/invoke:
+    post:
+      summary: Invoke agent (normalized)
+      responses:
+        "200":
+          description: OK
+  /api/v1/widget/invoke:
+    post:
+      summary: Widget invoke
+      responses:
+        "200":
+          description: OK
+  /api/v1/telegram/webhook:
+    post:
+      summary: Telegram webhook
+      responses:
+        "200":
+          description: OK
+  /api/v1/max/webhook:
+    post:
+      summary: MAX webhook
+      responses:
+        "200":
+          description: OK
+
