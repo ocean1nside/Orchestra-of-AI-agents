@@ -19,6 +19,12 @@ SocratiCode используется **только** для разработк�
 
 По умолчанию MCP-сервер SocratiCode запускается **локально** (см. `.vscode/mcp.json`) и контейнер не обязателен.
 
+Рекомендуемый режим для скорости работы агента:
+
+- включить MCP `socraticode`;
+- сделать **полную индексацию** проекта один раз;
+- включить **watcher**, чтобы индекс обновлялся автоматически при изменениях файлов.
+
 ### Вариант B (через Docker dev-compose)
 
 В `infra/docker-compose.dev.yml` добавлен опциональный сервис `socraticode` (dev-only) под профилем `devtools`.
@@ -30,4 +36,21 @@ docker compose -f infra/docker-compose.dev.yml --profile devtools up -d socratic
 ```
 
 Production compose (`infra/docker-compose.yml`) **не** включает SocratiCode по требованиям ТЗ.
+
+## Как понять, что индекс актуальный
+
+SocratiCode умеет:
+
+- **`codebase_index`** — запустить индексацию (асинхронно);
+- **`codebase_status`** — проверить прогресс/статус;
+- **`codebase_watch`** — включить watcher (авто-обновление индекса);
+- **`codebase_update`** — инкрементально обновить индекс (синхронно);
+- **`codebase_graph_build`** — собрать “граф” (зависимости/вызовы) для impact/flow.
+
+Политика для этого репо:
+
+- при начале работы с проектом: `codebase_status` → если индекса нет, запустить `codebase_index`;
+- держать `codebase_watch` в состоянии `active`;
+- если были массовые изменения (переезды/рефакторинг) — запускать `codebase_update` или полный `codebase_index`.
+
 
