@@ -11,6 +11,7 @@ from orchestrator_api.db.session import get_db
 from orchestrator_api.modules.indexing.queue import get_queue
 from orchestrator_api.modules.indexing.tasks import run_index_job
 from orchestrator_api.schemas.jobs import JobListResponse, JobOut, JobProgress, ReindexRequest
+from sqlalchemy import func
 
 router = APIRouter()
 
@@ -67,4 +68,20 @@ async def get_job(job_id: str, db: AsyncSession = Depends(get_db)) -> JobOut:
     if row is None:
         raise HTTPException(status_code=404, detail="Job not found.")
     return _job_out(row)
+
+
+@router.get("/knowledge/index/status")
+async def index_status_summary(db: AsyncSession = Depends(get_db)) -> dict:
+    counts = dict(
+        (await db.execute(select(IdxJob.status, func.count()).group_by(IdxJob.status))).all()
+    )
+
+    latest = (
+        await db.execute(select(IdxJob).order_by(IdxJob.created_at.desc()).limit(1))
+    ).scalar_one_or_none()
+
+    return {
+        "job_counts_by_status": counts,
+        "latest_job": (_job_out(latest).model_dump() if latest else None),
+    }
 

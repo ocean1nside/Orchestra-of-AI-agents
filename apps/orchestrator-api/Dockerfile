@@ -5,6 +5,9 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 COPY pyproject.toml /app/pyproject.toml
 COPY src /app/src
 COPY alembic.ini /app/alembic.ini
@@ -14,6 +17,8 @@ RUN pip install --no-cache-dir -U pip && \
     pip install --no-cache-dir .
 
 ENV PYTHONPATH=/app/src
+
+ENTRYPOINT ["/entrypoint.sh"]
 
 EXPOSE 8000
 

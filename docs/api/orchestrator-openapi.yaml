@@ -9,6 +9,41 @@ paths:
       responses:
         "200":
           description: OK
+  /api/v1/knowledge/documents:
+    get:
+      summary: List knowledge documents
+      responses:
+        "200":
+          description: OK
+    post:
+      summary: Upload knowledge document (JSON or multipart)
+      responses:
+        "200":
+          description: OK
+  /api/v1/knowledge/reindex:
+    post:
+      summary: Trigger indexing/reindex job
+      responses:
+        "200":
+          description: OK
+  /api/v1/knowledge/index/status:
+    get:
+      summary: Get indexing/job status summary (MVP)
+      responses:
+        "200":
+          description: OK
+  /api/v1/jobs:
+    get:
+      summary: List indexing jobs
+      responses:
+        "200":
+          description: OK
+  /api/v1/jobs/{job_id}:
+    get:
+      summary: Get indexing job
+      responses:
+        "200":
+          description: OK
   /api/v1/status:
     get:
       summary: Status

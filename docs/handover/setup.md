@@ -12,3 +12,20 @@ MVP будет запускаться через:
 - `infra/docker-compose.dev.yml` (dev)
 - `infra/docker-compose.yml` (prod-like, без SocratiCode)
 
+После изменений схемы БД (новые alembic-миграции) обязательно **пересоберите образы** контейнеров оркестра:
+
+```bash
+docker compose -f infra/docker-compose.yml build orchestrator-api indexing-worker
+docker compose -f infra/docker-compose.yml up -d orchestrator-api indexing-worker
+```
+
+### Автоматические миграции Alembic
+
+Образ `orchestrator-api` запускает `alembic upgrade head` перед стартом API (ENTRYPOINT контейнера).
+
+Если вдруг понадобилось выполнить вручную:
+
+```bash
+docker compose -f infra/docker-compose.yml exec orchestrator-api alembic upgrade head
+```
+
