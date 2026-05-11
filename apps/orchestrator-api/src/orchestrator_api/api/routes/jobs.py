@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from orchestrator_api.db.models.idx import IdxJob
@@ -11,7 +11,6 @@ from orchestrator_api.db.session import get_db
 from orchestrator_api.modules.indexing.queue import get_queue
 from orchestrator_api.modules.indexing.tasks import run_index_job
 from orchestrator_api.schemas.jobs import JobListResponse, JobOut, JobProgress, ReindexRequest
-from sqlalchemy import func
 
 router = APIRouter()
 

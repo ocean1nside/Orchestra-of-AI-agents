@@ -1,3 +1,6 @@
+from typing import Literal
+
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,8 +11,15 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/orchestrator"
     redis_url: str = "redis://redis:6379/0"
     qdrant_url: str = "http://qdrant:6333"
+    qdrant_collection: str = Field(default="knowledge_chunks", validation_alias="QDRANT_COLLECTION")
     storage_path: str = "/storage/knowledge"
     api_key_dev: str = "change-me"
+
+    # Embeddings: `hash` = deterministic local vectors (dev); `openai` = OpenAI API (set OPENAI_API_KEY).
+    embed_provider: Literal["hash", "openai"] = Field(default="hash", validation_alias="EMBED_PROVIDER")
+    openai_api_key: str = ""
+    embedding_model: str = Field(default="text-embedding-3-small", validation_alias="EMBEDDING_MODEL")
+    vector_dimensions: int = Field(default=384, validation_alias="VECTOR_DIMENSIONS")
 
 
 def get_settings() -> Settings:
