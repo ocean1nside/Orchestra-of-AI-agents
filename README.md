@@ -32,6 +32,29 @@ storage/
 
 - `docs/technical-spec.md` — актуальная консолидированная спека (на основе файлов в корне)
 - `docs/architecture.md` — архитектурные решения и принятые компромиссы
+- `docs/development-plan.md` — план работ от текущей точки + регламент индекса SocratiCode
 - `docs/api/` — OpenAPI спек-файлы
 - `docs/handover/` — инструкции по запуску/окружению/отладке
+
+## Быстрый старт (локально)
+
+1. Скопируйте `env.example` → `.env` в корне репозитория (файл `.env` не коммитится):
+
+```bash
+copy env.example .env
+```
+
+2. Запускайте compose **из корня репозитория** (важно для `${POSTGRES_*}` и `../.env` в compose-файлах):
+
+```bash
+docker compose -f infra/docker-compose.dev.yml --profile devtools up -d --build
+```
+
+3. Проверки:
+
+- `http://localhost:8000/api/v1/health`
+- `http://localhost:8000/api/v1/infrastructure/status`
+- `http://localhost:8010/health`
+
+4. Индекс кода в Cursor: см. `docs/handover/socraticode.md` и `scripts/refresh-project-index.ps1`.
 

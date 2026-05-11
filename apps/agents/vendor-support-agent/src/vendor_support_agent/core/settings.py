@@ -1,3 +1,7 @@
+from pathlib import Path
+from typing import Literal
+
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -6,14 +10,24 @@ class Settings(BaseSettings):
 
     app_env: str = "development"
     database_url: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/orchestrator"
+
     qdrant_url: str = "http://qdrant:6333"
-    llm_provider: str = "openai"
-    llm_api_key: str = ""
-    llm_model: str = ""
+    qdrant_collection: str = Field(default="knowledge_chunks", validation_alias="QDRANT_COLLECTION")
+
+    embed_provider: Literal["hash", "openai"] = Field(default="hash", validation_alias="EMBED_PROVIDER")
+    openai_api_key: str = Field(default="", validation_alias="OPENAI_API_KEY")
+    embedding_model: str = Field(default="text-embedding-3-small", validation_alias="EMBEDDING_MODEL")
+    vector_dimensions: int = Field(default=384, validation_alias="VECTOR_DIMENSIONS")
+
+    prompts_dir: Path = Field(default=Path("/app/prompts"), validation_alias="PROMPTS_DIR")
+
+    llm_provider: str = Field(default="openai", validation_alias="LLM_PROVIDER")
+    llm_api_key: str = Field(default="", validation_alias="LLM_API_KEY")
+    llm_model: str = Field(default="gpt-4o-mini", validation_alias="LLM_MODEL")
+
     telegram_bot_token: str = ""
     max_bot_token: str = ""
 
 
 def get_settings() -> Settings:
     return Settings()
-

@@ -1,10 +1,12 @@
 services:
   postgres:
     image: postgres:16
+    env_file:
+      - ../.env
     environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_DB: orchestrator
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-orchestrator}
     ports:
       - "5432:5432"
     volumes:
@@ -26,7 +28,7 @@ services:
     build:
       context: ../apps/orchestrator-api
     env_file:
-      - ../apps/orchestrator-api/.env.example
+      - ../.env
     environment:
       APP_ENV: development
     volumes:
@@ -42,7 +44,7 @@ services:
     build:
       context: ../apps/agents/vendor-support-agent
     env_file:
-      - ../apps/agents/vendor-support-agent/.env.example
+      - ../.env
     environment:
       APP_ENV: development
     depends_on:
@@ -55,7 +57,7 @@ services:
     build:
       context: ../apps/orchestrator-api
     env_file:
-      - ../apps/orchestrator-api/.env.example
+      - ../.env
     environment:
       APP_ENV: development
     depends_on:

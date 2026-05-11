@@ -8,6 +8,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from orchestrator_api.db.base import Base
+import orchestrator_api.db.models  # noqa: F401
 
 config = context.config
 

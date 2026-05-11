@@ -1,10 +1,12 @@
 services:
   postgres:
     image: postgres:16
+    env_file:
+      - ../.env
     environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_DB: orchestrator
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-orchestrator}
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -20,7 +22,7 @@ services:
     build:
       context: ../apps/orchestrator-api
     env_file:
-      - ../apps/orchestrator-api/.env.example
+      - ../.env
     volumes:
       - ../storage:/storage
     depends_on:
@@ -32,7 +34,7 @@ services:
     build:
       context: ../apps/orchestrator-api
     env_file:
-      - ../apps/orchestrator-api/.env.example
+      - ../.env
     depends_on:
       - redis
       - postgres
@@ -42,7 +44,7 @@ services:
     build:
       context: ../apps/agents/vendor-support-agent
     env_file:
-      - ../apps/agents/vendor-support-agent/.env.example
+      - ../.env
     depends_on:
       - postgres
       - qdrant

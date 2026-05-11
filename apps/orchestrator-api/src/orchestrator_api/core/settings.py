@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     embedding_model: str = Field(default="text-embedding-3-small", validation_alias="EMBEDDING_MODEL")
     vector_dimensions: int = Field(default=384, validation_alias="VECTOR_DIMENSIONS")
 
+    vendor_support_agent_base_url: str = Field(
+        default="http://vendor-support-agent:8010",
+        validation_alias="VENDOR_SUPPORT_AGENT_BASE_URL",
+    )
+
 
 def get_settings() -> Settings:
     return Settings()
