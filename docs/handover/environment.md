@@ -13,6 +13,7 @@ REDIS_URL=redis://redis:6379/0
 QDRANT_URL=http://qdrant:6333
 QDRANT_COLLECTION=knowledge_chunks
 STORAGE_PATH=/storage/knowledge
+# Пока не проверяется в коде оркестратора (заглушка под будущую защиту admin API).
 API_KEY_DEV=change-me
 
 # Индексация: эмбеддинги
@@ -25,6 +26,11 @@ VECTOR_DIMENSIONS=384
 ```
 
 ## vendor-support-agent
+
+Актуальный список — в корневом `env.example`. Важно:
+
+- **`WIDGET_API_KEY`** — если задан, обязателен для `POST /api/v1/widget/invoke` и `POST /api/v1/invoke` (заголовки см. `docs/handover/telegram.md`).
+- **`TELEGRAM_WEBHOOK_SECRET`** — опционально, должен совпадать с `secret_token` в `setWebhook`.
 
 ```env
 APP_ENV=development

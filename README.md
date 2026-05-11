@@ -58,3 +58,5 @@ docker compose -f infra/docker-compose.dev.yml --profile devtools up -d --build
 
 4. Индекс кода в Cursor: см. `docs/handover/socraticode.md` и `scripts/refresh-project-index.ps1`.
 
+5. Telegram-бот: `docs/handover/telegram.md` (вебхук, `WIDGET_API_KEY` для внешнего виджета).
+

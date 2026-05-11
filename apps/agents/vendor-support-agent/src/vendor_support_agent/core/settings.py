@@ -26,7 +26,12 @@ class Settings(BaseSettings):
     llm_model: str = Field(default="gpt-4o-mini", validation_alias="LLM_MODEL")
 
     telegram_bot_token: str = ""
+    # Совпадает с secret_token при вызове setWebhook — заголовок X-Telegram-Bot-Api-Secret-Token.
+    telegram_webhook_secret: str = Field(default="", validation_alias="TELEGRAM_WEBHOOK_SECRET")
     max_bot_token: str = ""
+
+    # Если не пусто: POST /api/v1/widget/invoke и /api/v1/invoke требуют Bearer или X-Widget-Api-Key.
+    widget_api_key: str = Field(default="", validation_alias="WIDGET_API_KEY")
 
 
 def get_settings() -> Settings:
