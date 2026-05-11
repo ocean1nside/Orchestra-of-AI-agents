@@ -6,7 +6,7 @@
 
 - Docker Compose (dev/prod-like), единый корневой `env.example` + локальный `.env` для сервисов.
 - `orchestrator-api`: документы, jobs/reindex, пайплайн индексации (текст → чанки → Postgres + Qdrant), промпты (таблицы + API), заглушки audit/indexing logs + runtime logs list, agents list, health с реальными проверками Postgres/Redis/Qdrant/агента/хранилища.
-- `vendor-support-agent`: RAG (Qdrant + Postgres), mock LLM без ключа, запись `runtime_*`, ответ с `sources`.
+- `vendor-support-agent`: RAG (Qdrant + Postgres), LLM при `LLM_API_KEY`, запись `runtime_*`, ответ с `sources`; три входа: **виджет** (`/widget/invoke`, опционально `WIDGET_API_KEY`), **Telegram** (реальный `Update` + `sendMessage`), **MAX** (реальный `Update` + `platform-api.max.ru/messages`).
 - `indexing-worker` (RQ) в compose.
 - SocratiCode: индекс проекта в Cursor через MCP; контейнер `socraticode` в dev — вспомогательный.
 
@@ -14,7 +14,7 @@
 
 1. **Индексация**: PDF/DOCX как planned extractors; `idx_job_events` в UI/фильтрах; прогресс job по документам/чанкам точнее.
 2. **Промпты**: синхронизация файлов `apps/agents/vendor-support-agent/prompts/*.md` ↔ версии в БД (опционально job).
-3. **Агент**: Telegram/MAX нормализация webhook payload (сейчас общий JSON); реальные ответы LLM при `LLM_API_KEY`.
+3. **Агент**: расширение каналов (вложения, callback), лимиты и ретраи исходящих API.
 4. **Оркестр**: `audit_events`, полноценный `GET /logs/indexing`; статусы агентов из health/heartbeat.
 5. **Тесты**: pytest e2e (compose profile), моки Qdrant/OpenAI.
 6. **Nginx** (по ТЗ) как единая точка входа для dev.

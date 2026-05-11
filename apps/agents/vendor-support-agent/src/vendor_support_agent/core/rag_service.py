@@ -4,6 +4,7 @@ import asyncio
 from dataclasses import dataclass
 
 from qdrant_client import QdrantClient
+from qdrant_client.http.exceptions import UnexpectedResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,12 +24,18 @@ class RetrievedChunk:
 
 def _search_qdrant_sync(*, qdrant_url: str, collection: str, vector: list[float], limit: int):
     client = QdrantClient(url=qdrant_url)
-    return client.search(
-        collection_name=collection,
-        query_vector=vector,
-        limit=limit,
-        with_payload=True,
-    )
+    try:
+        return client.search(
+            collection_name=collection,
+            query_vector=vector,
+            limit=limit,
+            with_payload=True,
+        )
+    except UnexpectedResponse as e:
+        # До первой индексации коллекции может не быть — не падаем, просто без RAG.
+        if getattr(e, "status_code", None) == 404 or "doesn't exist" in str(e).lower():
+            return []
+        raise
 
 
 async def retrieve(

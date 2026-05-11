@@ -32,8 +32,3 @@ async def telegram_invoke(req: InvokeRequest) -> InvokeResponse:
     """Ручная проверка в формате InvokeRequest (curl / Postman), без Telegram Update."""
     return await _engine.invoke(req)
 
-
-@router.post("/api/v1/max/webhook", response_model=InvokeResponse)
-async def max_webhook(req: InvokeRequest) -> InvokeResponse:
-    return await _engine.invoke(req)
-

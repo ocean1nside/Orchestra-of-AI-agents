@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # Совпадает с secret_token при вызове setWebhook — заголовок X-Telegram-Bot-Api-Secret-Token.
     telegram_webhook_secret: str = Field(default="", validation_alias="TELEGRAM_WEBHOOK_SECRET")
     max_bot_token: str = ""
+    # Секрет из POST /subscriptions (поле secret); заголовок X-Max-Bot-Api-Secret.
+    max_webhook_secret: str = Field(default="", validation_alias="MAX_WEBHOOK_SECRET")
+    max_api_base: str = Field(default="https://platform-api.max.ru", validation_alias="MAX_API_BASE")
 
     # Если не пусто: POST /api/v1/widget/invoke и /api/v1/invoke требуют Bearer или X-Widget-Api-Key.
     widget_api_key: str = Field(default="", validation_alias="WIDGET_API_KEY")
