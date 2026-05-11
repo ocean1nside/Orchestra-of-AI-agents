@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -12,6 +13,27 @@ from orchestrator_api.core.settings import get_settings
 from orchestrator_api.db.session import engine
 
 router = APIRouter()
+
+
+def _rq_workers_status(redis_url: str) -> tuple[str, str | None]:
+    """Статус indexing-worker: наличие зарегистрированных RQ workers в Redis."""
+    try:
+        from redis import Redis
+        from rq import Worker
+
+        conn = Redis.from_url(redis_url)
+        try:
+            n = len(Worker.all(connection=conn))
+            if n > 0:
+                return "ok", None
+            return (
+                "degraded",
+                "No RQ workers in Redis; start indexing-worker container for indexing jobs.",
+            )
+        finally:
+            conn.close()
+    except Exception as e:
+        return "error", str(e)[:500]
 
 
 @router.get("/health")
@@ -59,7 +81,9 @@ async def infrastructure_status() -> dict:
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             r = await client.get(f"{settings.qdrant_url.rstrip('/')}/collections")
-            services["qdrant"]["status"] = "ok" if r.status_code < 500 else "error"
+            services["qdrant"]["status"] = "ok" if r.status_code == 200 else "error"
+            if r.status_code != 200:
+                services["qdrant"]["error"] = f"HTTP {r.status_code}"
     except Exception as e:
         services["qdrant"]["status"] = "error"
         services["qdrant"]["error"] = str(e)[:500]
@@ -79,15 +103,11 @@ async def infrastructure_status() -> dict:
         services["vendor_support_agent"]["status"] = "error"
         services["vendor_support_agent"]["error"] = str(e)[:500]
 
-    # indexing_worker: best-effort via Redis queue presence (worker itself doesn't expose HTTP)
     try:
-        redis = Redis.from_url(settings.redis_url)
-        try:
-            await redis.ping()
-            services["indexing_worker"]["status"] = "unknown"
-            services["indexing_worker"]["note"] = "No HTTP endpoint; verify docker logs for indexing-worker"
-        finally:
-            await redis.aclose()
+        iw_status, iw_note = await asyncio.to_thread(_rq_workers_status, settings.redis_url)
+        services["indexing_worker"]["status"] = iw_status
+        if iw_note:
+            services["indexing_worker"]["note"] = iw_note
     except Exception:
         services["indexing_worker"]["status"] = "error"
 
@@ -96,5 +116,10 @@ async def infrastructure_status() -> dict:
         if s.get("status") == "error":
             overall = "degraded"
             break
+    if overall == "ok":
+        for s in services.values():
+            if s.get("status") == "degraded":
+                overall = "degraded"
+                break
 
     return {"status": overall, "services": services}

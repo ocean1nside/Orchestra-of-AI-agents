@@ -13,8 +13,9 @@ REDIS_URL=redis://redis:6379/0
 QDRANT_URL=http://qdrant:6333
 QDRANT_COLLECTION=knowledge_chunks
 STORAGE_PATH=/storage/knowledge
-# Пока не проверяется в коде оркестратора (заглушка под будущую защиту admin API).
 API_KEY_DEV=change-me
+# ORCHESTRATOR_REQUIRE_API_KEY=true — тогда для API кроме health/status/infrastructure/openapi нужен X-Api-Key или Bearer с тем же значением, что API_KEY_DEV (не используйте change-me в проде).
+ORCHESTRATOR_REQUIRE_API_KEY=false
 
 # Индексация: эмбеддинги
 # hash — детерминированные локальные векторы (dev, без внешних вызовов)

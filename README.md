@@ -60,3 +60,7 @@ docker compose -f infra/docker-compose.dev.yml --profile devtools up -d --build
 
 5. Каналы агента: `docs/handover/channel-entrypoints.md`; Telegram — `docs/handover/telegram.md`; MAX — `docs/handover/max.md`.
 
+6. **Стенд / тесты как на проде**: в `.env` выставьте `ORCHESTRATOR_REQUIRE_API_KEY=true` и сильный `API_KEY_DEV`; для агента задайте `WIDGET_API_KEY` и передавайте его в `widget/invoke`. После `docker compose up` запустите `python scripts/smoke_stack.py --api-key <ваш ключ>`.
+
+7. **Smoke без pytest**: из корня репозитория при запущенных контейнерах — `python scripts/smoke_stack.py` (при необходимости `--orchestrator`, `--agent`, `--api-key`).
+

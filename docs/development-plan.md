@@ -7,6 +7,7 @@
 - Docker Compose (dev/prod-like), единый корневой `env.example` + локальный `.env` для сервисов.
 - `orchestrator-api`: документы, jobs/reindex, пайплайн индексации (текст → чанки → Postgres + Qdrant), промпты (таблицы + API), заглушки audit/indexing logs + runtime logs list, agents list, health с реальными проверками Postgres/Redis/Qdrant/агента/хранилища.
 - `vendor-support-agent`: RAG (Qdrant + Postgres), LLM при `LLM_API_KEY`, запись `runtime_*`, ответ с `sources`; три входа: **виджет** (`/widget/invoke`, опционально `WIDGET_API_KEY`), **Telegram** (реальный `Update` + `sendMessage`), **MAX** (реальный `Update` + `platform-api.max.ru/messages`).
+- Защита оркестратора: **`ORCHESTRATOR_REQUIRE_API_KEY`** + **`API_KEY_DEV`** (заголовки `X-Api-Key` / `Bearer`); smoke: **`scripts/smoke_stack.py`**; **infrastructure/status** учитывает **RQ workers** для `indexing_worker`.
 - `indexing-worker` (RQ) в compose.
 - SocratiCode: индекс проекта в Cursor через MCP; контейнер `socraticode` в dev — вспомогательный.
 

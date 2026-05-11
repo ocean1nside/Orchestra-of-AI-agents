@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Literal
 
 from pydantic import Field
@@ -13,7 +14,12 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://qdrant:6333"
     qdrant_collection: str = Field(default="knowledge_chunks", validation_alias="QDRANT_COLLECTION")
     storage_path: str = "/storage/knowledge"
-    api_key_dev: str = "change-me"
+    api_key_dev: str = Field(default="change-me", validation_alias="API_KEY_DEV")
+    # Если true — все маршруты /api/v1/* кроме health/status/infrastructure требуют X-Api-Key / Bearer = API_KEY_DEV.
+    require_orchestrator_api_key: bool = Field(
+        default=False,
+        validation_alias="ORCHESTRATOR_REQUIRE_API_KEY",
+    )
 
     # Embeddings: `hash` = deterministic local vectors (dev); `openai` = OpenAI API (set OPENAI_API_KEY).
     embed_provider: Literal["hash", "openai"] = Field(default="hash", validation_alias="EMBED_PROVIDER")
@@ -27,6 +33,7 @@ class Settings(BaseSettings):
     )
 
 
+@lru_cache
 def get_settings() -> Settings:
     return Settings()
 

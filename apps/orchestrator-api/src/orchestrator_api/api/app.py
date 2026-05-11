@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from orchestrator_api.api.middleware import OrchestratorApiKeyMiddleware
 from orchestrator_api.api.routes.agents import router as agents_router
 from orchestrator_api.api.routes.health import router as health_router
 from orchestrator_api.api.routes.jobs import router as jobs_router
@@ -16,6 +17,7 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
         openapi_url="/openapi.json",
     )
+    app.add_middleware(OrchestratorApiKeyMiddleware)
 
     app.include_router(health_router, prefix="/api/v1", tags=["health"])
     app.include_router(
