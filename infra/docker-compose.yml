@@ -35,9 +35,12 @@ services:
       context: ../apps/orchestrator-api
     env_file:
       - ../.env
+    volumes:
+      - ../storage:/storage
     depends_on:
       - redis
       - postgres
+      - qdrant
     command: ["python", "-m", "orchestrator_api.worker"]
 
   vendor-support-agent:

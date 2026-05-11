@@ -1,9 +1,23 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointIdsList, PointStruct, VectorParams
 
 from orchestrator_api.core.settings import get_settings
+
+
+def _qdrant_point_id_strings(ids: list[str]) -> list[str]:
+    """Qdrant принимает в качестве id точки только UUID или unsigned int."""
+    out: list[str] = []
+    for pid in ids:
+        try:
+            UUID(pid)
+            out.append(pid)
+        except ValueError:
+            continue
+    return out
 
 
 def _client() -> QdrantClient:
@@ -22,10 +36,11 @@ def ensure_collection(*, collection: str, vector_size: int) -> None:
 
 
 def delete_points_by_ids(*, collection: str, point_ids: list[str]) -> None:
-    if not point_ids:
+    valid = _qdrant_point_id_strings(point_ids)
+    if not valid:
         return
     client = _client()
-    client.delete(collection_name=collection, points_selector=PointIdsList(points=point_ids))
+    client.delete(collection_name=collection, points_selector=PointIdsList(points=valid))
 
 
 def upsert_points(*, collection: str, points: list[PointStruct]) -> None:

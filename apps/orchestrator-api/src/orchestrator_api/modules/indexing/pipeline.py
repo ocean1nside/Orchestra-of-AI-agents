@@ -92,7 +92,8 @@ async def _index_one_document(db: AsyncSession, job_id: str, doc: KbDocument, se
         vectors = await embed_batch(batch, settings=settings)
         for offset, (piece, vec) in enumerate(zip(batch, vectors, strict=True)):
             idx = i + offset
-            cid = f"chunk_{uuid4().hex}"
+            # Qdrant point id: только unsigned int или UUID (без произвольных префиксов).
+            cid = str(uuid4())
             chunk = KbChunk(
                 id=cid,
                 document_id=doc.id,

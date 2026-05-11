@@ -60,9 +60,12 @@ services:
       - ../.env
     environment:
       APP_ENV: development
+    volumes:
+      - ../storage:/storage
     depends_on:
       - redis
       - postgres
+      - qdrant
     command: ["python", "-m", "orchestrator_api.worker"]
 
   socraticode:
