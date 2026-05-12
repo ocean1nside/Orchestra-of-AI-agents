@@ -1,12 +1,14 @@
 # План разработки (от текущей точки)
 
+Карта документации: [`README.md`](README.md).
+
 Цель MVP: сценарий из ТЗ — compose → health → загрузка документа → reindex → вопрос в агент → ответ с `sources` + логи в Postgres.
 
 ## Сделано (состояние на сейчас)
 
-- Docker Compose (dev/prod-like), единый корневой `env.example` + локальный `.env` для сервисов.
+- Docker Compose (dev/prod-like): корневой `env.example` (только `POSTGRES_*`) + `apps/orchestrator-api/.env` и `apps/agents/vendor-support-agent/.env` по примерам.
 - `orchestrator-api`: документы, jobs/reindex, пайплайн индексации (текст → чанки → Postgres + Qdrant), промпты (таблицы + API), заглушки audit/indexing logs + runtime logs list, agents list, health с реальными проверками Postgres/Redis/Qdrant/агента/хранилища.
-- `vendor-support-agent`: RAG (Qdrant + Postgres), LLM при `LLM_API_KEY`, запись `runtime_*`, ответ с `sources`; три входа: **виджет** (`/widget/invoke`, опционально `WIDGET_API_KEY`), **Telegram** (реальный `Update` + `sendMessage`), **MAX** (реальный `Update` + `platform-api.max.ru/messages`).
+- `vendor-support-agent`: RAG (Qdrant + Postgres), LLM при `LLM_API_KEY`, запись `runtime_*`, ответ с `sources`; три входа: **виджет** (`/widget/invoke`, опционально `WIDGET_API_KEY`), **Telegram** (реальный `Update` + `sendMessage`), **MAX** (реальный `Update` + `platform-api.max.ru/messages`); **operator API** (`/api/v1/operator/...`, список чатов и ответ оператора). Все HTTP-методы: **[`http-api-reference.md`](http-api-reference.md)**.
 - Защита оркестратора: **`ORCHESTRATOR_REQUIRE_API_KEY`** + **`API_KEY_DEV`** (заголовки `X-Api-Key` / `Bearer`); smoke: **`scripts/smoke_stack.py`**; **infrastructure/status** учитывает **RQ workers** для `indexing_worker`.
 - `indexing-worker` (RQ) в compose.
 - SocratiCode: индекс проекта в Cursor через MCP; контейнер `socraticode` в dev — вспомогательный.

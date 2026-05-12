@@ -29,10 +29,14 @@
 - **Назначение**: отвечать на вопросы по документации приложения/кабинета вендора.
 - **Единый движок**: все каналы вызывают общий `AgentEngine`.
 - **Каналы**: widget, Telegram webhook, MAX webhook.
+- **Модель LLM**: задаётся в `apps/agents/vendor-support-agent/.env` переменной **`LLM_MODEL`** (и **`LLM_API_KEY`**); у каждого будущего агента — свой `.env` в своей папке. См. `docs/handover/environment.md` и `.env.example` агента.
 
 ## Где читать детали
 
+- **Карта всей документации:** `docs/README.md`
 - Спека: `docs/technical-spec.md`
 - Архитектура: `docs/architecture.md`
-- OpenAPI: `docs/api/`
+- Все HTTP-эндпоинты: `docs/http-api-reference.md`
+- OpenAPI (YAML + живой `/openapi.json`): `docs/api/README.md`
+- Запуск и каналы: `docs/handover/README.md`
 

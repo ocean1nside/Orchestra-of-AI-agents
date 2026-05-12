@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from vendor_support_agent.db.base import Base
@@ -15,6 +15,10 @@ class RuntimeConversation(Base):
     channel: Mapped[str] = mapped_column(String(32))
     user_id: Mapped[str] = mapped_column(String(256))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    # Кто ведёт диалог: ai — отвечает агент; human — только оператор (ИИ не отвечает).
+    conversation_holder: Mapped[str] = mapped_column(String(16), default="ai", server_default="ai")
+    # Скрыт из списка operator API (мягкое скрытие; строки и сообщения остаются в БД).
+    hidden: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
 
 
 class RuntimeMessage(Base):

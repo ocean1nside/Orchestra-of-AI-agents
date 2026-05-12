@@ -25,6 +25,11 @@ class SourceItem(BaseModel):
 class InvokeResponseMeta(BaseModel):
     confidence: float | None = None
     needs_human: bool = False
+    escalated: bool = False
+    escalation_reasons: list[str] = Field(default_factory=list)
+    # Кто ведёт диалог в БД; ai_muted=True — ответ ИИ не генерировался (контроль у human).
+    conversation_holder: Literal["ai", "human"] = "ai"
+    ai_muted: bool = False
 
 
 class InvokeResponse(BaseModel):

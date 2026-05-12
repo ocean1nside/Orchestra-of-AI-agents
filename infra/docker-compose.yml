@@ -22,19 +22,31 @@ services:
     build:
       context: ../apps/orchestrator-api
     env_file:
-      - ../.env
+      - path: ../.env
+        required: true
+      - path: ../apps/orchestrator-api/.env
+        required: false
+    environment:
+      APP_ENV: ${APP_ENV:-production}
     volumes:
       - ../storage:/storage
     depends_on:
       - postgres
       - redis
       - qdrant
+    ports:
+      - "8000:8000"
 
   indexing-worker:
     build:
       context: ../apps/orchestrator-api
     env_file:
-      - ../.env
+      - path: ../.env
+        required: true
+      - path: ../apps/orchestrator-api/.env
+        required: false
+    environment:
+      APP_ENV: ${APP_ENV:-production}
     volumes:
       - ../storage:/storage
     depends_on:
@@ -47,10 +59,17 @@ services:
     build:
       context: ../apps/agents/vendor-support-agent
     env_file:
-      - ../.env
+      - path: ../.env
+        required: true
+      - path: ../apps/agents/vendor-support-agent/.env
+        required: false
+    environment:
+      APP_ENV: ${APP_ENV:-production}
     depends_on:
       - postgres
       - qdrant
+    ports:
+      - "8010:8010"
 
 volumes:
   postgres_data:

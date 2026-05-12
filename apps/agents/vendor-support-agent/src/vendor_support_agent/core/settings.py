@@ -35,6 +35,13 @@ class Settings(BaseSettings):
 
     # Если не пусто: POST /api/v1/widget/invoke и /api/v1/invoke требуют Bearer или X-Widget-Api-Key.
     widget_api_key: str = Field(default="", validation_alias="WIDGET_API_KEY")
+    # API консоли оператора (список чатов / ответ). Пусто — допускается тот же ключ, что WIDGET_API_KEY.
+    operator_api_key: str = Field(default="", validation_alias="OPERATOR_API_KEY")
+
+    # Эскалация: уведомления в Telegram-группу (бот должен быть админом). Пусто = эскалация отключена.
+    escalation_telegram_chat_id: str = Field(default="", validation_alias="ESCALATION_TELEGRAM_CHAT_ID")
+    # Заглушка ссылки «открыть контекст» для не-Telegram каналов (query: channel, conversation_id, user_id).
+    escalation_context_base_url: str = Field(default="", validation_alias="ESCALATION_CONTEXT_BASE_URL")
 
 
 def get_settings() -> Settings:

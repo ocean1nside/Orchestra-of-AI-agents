@@ -1,5 +1,7 @@
 # SocratiCode (dev-only)
 
+← [Карта `docs/`](../README.md) · [Индекс handover](README.md)
+
 SocratiCode используется **только** для разработки/передачи проекта и подключения MCP в Cursor.
 В production/runtime он не используется и не должен входить в `infra/docker-compose.yml`.
 

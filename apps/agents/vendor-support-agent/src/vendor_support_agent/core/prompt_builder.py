@@ -30,4 +30,10 @@ def build_user_prompt(*, user_message: str, chunks: list[RetrievedChunk]) -> str
     for i, c in enumerate(chunks, start=1):
         ctx_parts.append(f"[{i}] (document_id={c.document_id}, chunk_id={c.chunk_id}, title={c.title})\n{c.content}")
     ctx = "\n\n".join(ctx_parts)
-    return f"Контекст из базы знаний:\n{ctx}\n\nВопрос пользователя:\n{user_message}"
+    return (
+        "Ниже — извлечённые фрагменты из базы знаний. Опирайся на них при ответе.\n"
+        "Если в фрагментах есть шаги, названия экранов или термины по теме вопроса — опиши их; "
+        "не пиши «в базе нет информации», если соответствующие сведения явно присутствуют в тексте фрагментов.\n"
+        "Если по теме вопроса во фрагментах действительно ничего нет — так и скажи.\n\n"
+        f"{ctx}\n\nВопрос пользователя:\n{user_message}"
+    )

@@ -2,58 +2,93 @@ openapi: 3.0.3
 info:
   title: orchestrator-api
   version: 0.1.0
+  description: |
+    Упрощённый снимок. Живое дерево — GET /openapi.json на оркестраторе.
+    Полный текстовый справочник: docs/http-api-reference.md
+servers:
+  - url: http://localhost:8000
 paths:
   /api/v1/health:
     get:
-      summary: Health check
-      responses:
-        "200":
-          description: OK
-  /api/v1/knowledge/documents:
-    get:
-      summary: List knowledge documents
-      responses:
-        "200":
-          description: OK
-    post:
-      summary: Upload knowledge document (JSON or multipart)
-      responses:
-        "200":
-          description: OK
-  /api/v1/knowledge/reindex:
-    post:
-      summary: Trigger indexing/reindex job
-      responses:
-        "200":
-          description: OK
-  /api/v1/knowledge/index/status:
-    get:
-      summary: Get indexing/job status summary (MVP)
-      responses:
-        "200":
-          description: OK
-  /api/v1/jobs:
-    get:
-      summary: List indexing jobs
-      responses:
-        "200":
-          description: OK
-  /api/v1/jobs/{job_id}:
-    get:
-      summary: Get indexing job
-      responses:
-        "200":
-          description: OK
+      tags: [health]
+      summary: Health (no API key when require flag on)
   /api/v1/status:
     get:
-      summary: Status
-      responses:
-        "200":
-          description: OK
+      tags: [health]
+      summary: Lightweight status
   /api/v1/infrastructure/status:
     get:
-      summary: Infrastructure status
-      responses:
-        "200":
-          description: OK
-
+      tags: [health]
+      summary: Postgres Redis Qdrant agent storage checks
+  /api/v1/knowledge/documents:
+    get:
+      tags: [knowledge-documents]
+      summary: List documents
+    post:
+      tags: [knowledge-documents]
+      summary: Create document (JSON or multipart file)
+  /api/v1/knowledge/documents/{document_id}:
+    get:
+      tags: [knowledge-documents]
+      summary: Get document
+    patch:
+      tags: [knowledge-documents]
+      summary: Patch title/metadata
+    delete:
+      tags: [knowledge-documents]
+      summary: Soft delete (status deleted)
+  /api/v1/knowledge/reindex:
+    post:
+      tags: [jobs]
+      summary: Enqueue indexing job (ReindexRequest)
+  /api/v1/knowledge/index/status:
+    get:
+      tags: [jobs]
+      summary: Job counts and latest job
+  /api/v1/jobs:
+    get:
+      tags: [jobs]
+      summary: List indexing jobs
+  /api/v1/jobs/{job_id}:
+    get:
+      tags: [jobs]
+      summary: Get one job
+  /api/v1/prompts:
+    get:
+      tags: [prompts]
+      summary: List prompt templates
+  /api/v1/prompts/{prompt_key}:
+    get:
+      tags: [prompts]
+      summary: Latest prompt version content
+    put:
+      tags: [prompts]
+      summary: Append new version (PromptPutBody)
+  /api/v1/prompts/{prompt_key}/versions:
+    get:
+      tags: [prompts]
+      summary: List versions
+  /api/v1/agents:
+    get:
+      tags: [agents]
+      summary: List agents (MVP stub list)
+  /api/v1/agents/{agent_id}:
+    get:
+      tags: [agents]
+      summary: Get agent metadata
+  /api/v1/agents/{agent_id}/status:
+    get:
+      tags: [agents]
+      summary: Agent status stub
+  /api/v1/logs/runtime:
+    get:
+      tags: [logs]
+      summary: Runtime agent logs from Postgres
+  /api/v1/logs/indexing:
+    get:
+      tags: [logs]
+      summary: Stub empty list
+  /api/v1/audit/events:
+    get:
+      tags: [logs]
+      summary: Stub empty list

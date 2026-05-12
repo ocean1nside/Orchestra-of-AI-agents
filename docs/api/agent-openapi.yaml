@@ -2,41 +2,73 @@ openapi: 3.0.3
 info:
   title: vendor-support-agent
   version: 0.1.0
+  description: |
+    Упрощённый снимок. Живое дерево — GET /openapi.json на агенте.
+    Полный текстовый справочник: docs/http-api-reference.md
+servers:
+  - url: http://localhost:8010
 paths:
   /health:
     get:
-      summary: Health check
-      responses:
-        "200":
-          description: OK
+      tags: [health]
+      summary: Liveness
   /metadata:
     get:
-      summary: Agent metadata
-      responses:
-        "200":
-          description: OK
+      tags: [health]
+      summary: Agent id and version
   /api/v1/invoke:
     post:
-      summary: Invoke agent (normalized)
-      responses:
-        "200":
-          description: OK
+      tags: [invoke]
+      summary: Invoke agent (InvokeRequest)
+      description: Requires WIDGET_API_KEY when set (Bearer or X-Widget-Api-Key).
   /api/v1/widget/invoke:
     post:
-      summary: Widget invoke
-      responses:
-        "200":
-          description: OK
+      tags: [invoke]
+      summary: Widget alias for invoke
+      description: Same as /api/v1/invoke; WIDGET_API_KEY when set.
+  /api/v1/telegram/invoke:
+    post:
+      tags: [invoke]
+      summary: Manual Telegram-shaped invoke (no Update)
+      description: No widget key in code; protect at network layer if exposed.
   /api/v1/telegram/webhook:
     post:
-      summary: Telegram webhook
-      responses:
-        "200":
-          description: OK
+      tags: [telegram]
+      summary: Telegram Update webhook
+      description: Optional X-Telegram-Bot-Api-Secret-Token when TELEGRAM_WEBHOOK_SECRET set.
   /api/v1/max/webhook:
     post:
-      summary: MAX webhook
-      responses:
-        "200":
-          description: OK
-
+      tags: [max]
+      summary: MAX Update webhook
+      description: Optional X-Max-Bot-Api-Secret when MAX_WEBHOOK_SECRET set.
+  /api/v1/max/invoke:
+    post:
+      tags: [max]
+      summary: Manual MAX-shaped invoke (InvokeRequest, channel max)
+  /api/v1/operator/conversations:
+    get:
+      tags: [operator]
+      summary: List runtime conversations (all channels)
+      description: |
+        OPERATOR_API_KEY or WIDGET_API_KEY when configured.
+        By default hidden conversations are omitted; query include_hidden=true to list them.
+  /api/v1/operator/conversations/{conversation_id}:
+    get:
+      tags: [operator]
+      summary: Get one conversation
+  /api/v1/operator/conversations/{conversation_id}/messages:
+    get:
+      tags: [operator]
+      summary: List messages (user, assistant, operator)
+  /api/v1/operator/conversations/{conversation_id}/reply:
+    post:
+      tags: [operator]
+      summary: Operator reply — Telegram/MAX send or widget stored
+  /api/v1/operator/conversations/{conversation_id}/control:
+    post:
+      tags: [operator]
+      summary: Set conversation_holder ai vs human (mute AI replies in channel)
+  /api/v1/operator/conversations/{conversation_id}/visibility:
+    post:
+      tags: [operator]
+      summary: Soft-hide or unhide conversation in operator list (body hidden true|false)

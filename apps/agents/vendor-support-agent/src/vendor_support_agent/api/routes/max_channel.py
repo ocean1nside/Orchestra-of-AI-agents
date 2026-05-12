@@ -73,10 +73,15 @@ async def max_webhook(
 
     try:
         resp = await _engine.invoke(req)
+        if resp.meta.ai_muted:
+            return {"ok": True}
+        text_out = (resp.answer or "").strip()
+        if not text_out:
+            return {"ok": True}
         await send_message_text(
             access_token=token,
             chat_id=chat_id,
-            text=resp.answer,
+            text=text_out,
             api_base=settings.max_api_base,
         )
     except Exception:

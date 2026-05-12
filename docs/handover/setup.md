@@ -1,25 +1,32 @@
 # Setup (MVP)
 
+Индекс папки `handover/`: [`README.md`](README.md). Карта всего `docs/`: [`../README.md`](../README.md).
+
 ## Prerequisites
 
 - Docker + Docker Compose
 - Git
 
-## Запуск (будет дополнено по мере реализации)
+## Запуск
 
-MVP будет запускаться через:
+- **Локально с отладкой / SocratiCode-профилем:** `infra/docker-compose.dev.yml` (см. корневой `README.md`).
+- **Стенд или сервер без лишних сервисов:** `infra/docker-compose.yml` — те же слои `.env`, порты **8000** (оркестратор) и **8010** (агент) на хосте, без профиля `devtools`.
 
-- `infra/docker-compose.dev.yml` (dev)
-- `infra/docker-compose.yml` (prod-like, без SocratiCode)
+Команда из **корня репозитория** (важно для путей `../.env`):
+
+```bash
+docker compose -f infra/docker-compose.yml up -d --build
+```
 
 ## Переменные окружения
 
-Используйте корневой файл:
+- Корень: `env.example` → `.env` (минимум `POSTGRES_*`).
+- Оркестратор и worker: `apps/orchestrator-api/.env.example` → `apps/orchestrator-api/.env`.
+- Агент: `apps/agents/vendor-support-agent/.env.example` → `apps/agents/vendor-support-agent/.env`.
 
-- `env.example` (в репозитории)
-- `.env` (локально, **не коммитится**): `copy env.example .env`
+Слои в compose: см. `docs/handover/environment.md`. Сервисы подключают `../.env` и при необходимости профильный `.env` (путь относительно `infra/`).
 
-Сервисы `docker-compose` подключают `../.env` (путь относительно `infra/`).
+HTTP API обоих сервисов: **[`../http-api-reference.md`](../http-api-reference.md)**.
 
 После изменений схемы БД (новые alembic-миграции) обязательно **пересоберите образы** контейнеров оркестра:
 

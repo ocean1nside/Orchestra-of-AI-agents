@@ -1,5 +1,7 @@
 # Technical spec (consolidated)
 
+Оглавление документации репозитория: [`README.md`](README.md).
+
 Этот документ — **консолидированная** версия требований для MVP.
 
 Источники:
@@ -34,45 +36,9 @@
 
 ## API (MVP)
 
-### Orchestrator API
+Полный перечень методов, путей, тел запросов, заголовков и примеров: **[`http-api-reference.md`](http-api-reference.md)**.
 
-- Documents:
-  - `GET /api/v1/knowledge/documents`
-  - `POST /api/v1/knowledge/documents`
-  - `GET /api/v1/knowledge/documents/{document_id}`
-  - `PATCH /api/v1/knowledge/documents/{document_id}`
-  - `DELETE /api/v1/knowledge/documents/{document_id}`
-- Indexing:
-  - `POST /api/v1/knowledge/reindex`
-  - `GET /api/v1/knowledge/index/status`
-  - `GET /api/v1/jobs`
-  - `GET /api/v1/jobs/{job_id}`
-- Prompts:
-  - `GET /api/v1/prompts`
-  - `GET /api/v1/prompts/{prompt_key}`
-  - `PUT /api/v1/prompts/{prompt_key}`
-  - `GET /api/v1/prompts/{prompt_key}/versions`
-- Agents:
-  - `GET /api/v1/agents`
-  - `GET /api/v1/agents/{agent_id}`
-  - `GET /api/v1/agents/{agent_id}/status`
-- Health:
-  - `GET /api/v1/health`
-  - `GET /api/v1/status`
-  - `GET /api/v1/infrastructure/status`
-- Logs:
-  - `GET /api/v1/logs/runtime`
-  - `GET /api/v1/logs/indexing`
-  - `GET /api/v1/audit/events`
-
-### Vendor Support Agent API
-
-- `GET /health`
-- `GET /metadata`
-- `POST /api/v1/invoke`
-- `POST /api/v1/widget/invoke`
-- `POST /api/v1/telegram/webhook`
-- `POST /api/v1/max/webhook`
+Кратко: **orchestrator-api** — управление документами, индексацией, промтами, jobs, логами, health; **vendor-support-agent** — invoke/widget/Telegram/MAX webhooks, ручные invoke, health, **operator API** (список чатов и ответ оператора).
 
 ## Data model (high-level)
 

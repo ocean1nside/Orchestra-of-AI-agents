@@ -1,5 +1,9 @@
 # MAX: webhook и ответы
 
+← [Карта `docs/`](../README.md) · [Индекс handover](README.md)
+
+Полный перечень HTTP-методов, тел и заголовков: **[`../http-api-reference.md`](../http-api-reference.md)**.
+
 Официальная документация: [dev.max.ru](https://dev.max.ru/docs-api/methods/POST/subscriptions), объект [Update](https://dev.max.ru/docs-api/objects/Update).
 
 ## Эндпоинты

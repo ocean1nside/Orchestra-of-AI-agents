@@ -1,5 +1,7 @@
 # Три точки входа в агента (`vendor-support-agent`)
 
+← [Карта `docs/`](../README.md) · [Индекс handover](README.md)
+
 Все каналы в итоге вызывают один **`AgentEngine`**: RAG по Qdrant + Postgres, промпт, LLM, запись runtime-логов.
 
 | Канал | Кто инициатор | Наш HTTP-эндпоинт | Исходящие вызовы |
@@ -20,3 +22,7 @@
 - `POST /api/v1/max/invoke` — то же, `channel: "max"`.
 
 Оркестратор (`orchestrator-api`) в этих потоках **не участвует** как прокси сообщений пользователя; он нужен для документов, индексации и управления.
+
+## Консоль оператора (внешняя страница)
+
+Список чатов, история и ответ в тот же канал / чат: **[`operator-api.md`](operator-api.md)** (кратко) и полностью — **[`../http-api-reference.md`](../http-api-reference.md)** (раздел `vendor-support-agent`, operator).

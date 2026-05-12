@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import AsyncIterator
 from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from vendor_support_agent.core.llm_client import complete_chat
+from vendor_support_agent.core.escalation import (
+    compute_escalation,
+    format_user_facing_answer,
+    send_escalation_notification,
+)
+from vendor_support_agent.core.llm_client import complete_chat, stream_chat
 from vendor_support_agent.core.prompt_builder import build_system_prompt, build_user_prompt
+from vendor_support_agent.core.conversation_control import get_control_holder
 from vendor_support_agent.core.rag_service import retrieve
 from vendor_support_agent.core.settings import get_settings
 from vendor_support_agent.db.models.runtime import RuntimeAgentLog, RuntimeConversation, RuntimeMessage
@@ -32,7 +39,19 @@ class AgentEngine:
             await self._persist_turn(db, conv_id=conv_id, req=req)
 
         async with SessionLocal() as db:
-            chunks = await retrieve(db, query=req.message, limit=5, settings=settings)
+            holder = await get_control_holder(db, conversation_id=conv_id)
+        if holder == "human":
+            return InvokeResponse(
+                answer="",
+                sources=[],
+                meta=InvokeResponseMeta(
+                    conversation_holder="human",
+                    ai_muted=True,
+                ),
+            )
+
+        async with SessionLocal() as db:
+            chunks = await retrieve(db, query=req.message, limit=8, settings=settings)
 
         system = build_system_prompt()
         user_prompt = build_user_prompt(user_message=req.message, chunks=chunks)
@@ -40,6 +59,24 @@ class AgentEngine:
 
         confidence = min(1.0, max(0.0, sum(c.score for c in chunks) / max(1, len(chunks))))
         needs_human = len(chunks) == 0 or confidence < 0.25
+
+        decision = compute_escalation(
+            settings=settings,
+            message=req.message,
+            answer=answer,
+            confidence=confidence,
+            needs_human=needs_human,
+        )
+        final_answer = format_user_facing_answer(llm_answer=answer, decision=decision)
+        if decision.should_escalate:
+            await send_escalation_notification(
+                settings=settings,
+                req=req,
+                user_message=req.message,
+                answer=answer,
+                confidence=confidence,
+                decision=decision,
+            )
 
         sources = [
             SourceItem(document_id=c.document_id, chunk_id=c.chunk_id, title=c.title) for c in chunks
@@ -50,17 +87,90 @@ class AgentEngine:
                 db,
                 conv_id=conv_id,
                 req=req,
-                answer=answer,
+                answer=final_answer,
                 sources=sources,
                 confidence=confidence,
                 needs_human=needs_human,
+                escalated=decision.should_escalate,
+                escalation_reasons=decision.reasons,
             )
+            holder_out = await get_control_holder(db, conversation_id=conv_id)
 
         return InvokeResponse(
-            answer=answer,
+            answer=final_answer,
             sources=sources,
-            meta=InvokeResponseMeta(confidence=confidence, needs_human=needs_human),
+            meta=InvokeResponseMeta(
+                confidence=confidence,
+                needs_human=needs_human,
+                escalated=decision.should_escalate,
+                escalation_reasons=list(decision.reasons),
+                conversation_holder=holder_out,
+                ai_muted=False,
+            ),
         )
+
+    async def invoke_stream(self, req: InvokeRequest) -> AsyncIterator[str]:
+        """RAG + LLM с потоковым ответом: на каждом шаге — полный накопленный текст ответа."""
+        settings = get_settings()
+        conv_id = _conversation_pk(req.conversation_id)
+
+        async with SessionLocal() as db:
+            await self._persist_turn(db, conv_id=conv_id, req=req)
+
+        async with SessionLocal() as db:
+            holder = await get_control_holder(db, conversation_id=conv_id)
+        if holder == "human":
+            return
+
+        async with SessionLocal() as db:
+            chunks = await retrieve(db, query=req.message, limit=8, settings=settings)
+
+        system = build_system_prompt()
+        user_prompt = build_user_prompt(user_message=req.message, chunks=chunks)
+        answer = ""
+        async for answer in stream_chat(system=system, user=user_prompt, settings=settings):
+            yield answer
+
+        confidence = min(1.0, max(0.0, sum(c.score for c in chunks) / max(1, len(chunks))))
+        needs_human = len(chunks) == 0 or confidence < 0.25
+
+        decision = compute_escalation(
+            settings=settings,
+            message=req.message,
+            answer=answer,
+            confidence=confidence,
+            needs_human=needs_human,
+        )
+        final_answer = format_user_facing_answer(llm_answer=answer, decision=decision)
+        if decision.should_escalate:
+            await send_escalation_notification(
+                settings=settings,
+                req=req,
+                user_message=req.message,
+                answer=answer,
+                confidence=confidence,
+                decision=decision,
+            )
+
+        if final_answer != answer:
+            yield final_answer
+
+        sources = [
+            SourceItem(document_id=c.document_id, chunk_id=c.chunk_id, title=c.title) for c in chunks
+        ]
+
+        async with SessionLocal() as db:
+            await self._persist_assistant(
+                db,
+                conv_id=conv_id,
+                req=req,
+                answer=final_answer,
+                sources=sources,
+                confidence=confidence,
+                needs_human=needs_human,
+                escalated=decision.should_escalate,
+                escalation_reasons=decision.reasons,
+            )
 
     async def _persist_turn(self, db: AsyncSession, *, conv_id: str, req: InvokeRequest) -> None:
         existing = (await db.execute(select(RuntimeConversation).where(RuntimeConversation.id == conv_id))).scalar_one_or_none()
@@ -71,6 +181,8 @@ class AgentEngine:
                     channel=req.channel,
                     user_id=req.user_id,
                     created_at=datetime.utcnow(),
+                    conversation_holder="ai",
+                    hidden=False,
                 )
             )
 
@@ -95,6 +207,8 @@ class AgentEngine:
         sources: list[SourceItem],
         confidence: float,
         needs_human: bool,
+        escalated: bool = False,
+        escalation_reasons: list[str] | None = None,
     ) -> None:
         db.add(
             RuntimeMessage(
@@ -115,6 +229,8 @@ class AgentEngine:
                     "sources": [s.model_dump() for s in sources],
                     "confidence": confidence,
                     "needs_human": needs_human,
+                    "escalated": escalated,
+                    "escalation_reasons": list(escalation_reasons or []),
                     "settings": {"embed_provider": get_settings().embed_provider, "llm_model": get_settings().llm_model},
                 },
                 created_at=datetime.utcnow(),

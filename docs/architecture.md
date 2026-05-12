@@ -1,5 +1,7 @@
 # Architecture
 
+Оглавление документации: [`README.md`](README.md).
+
 ## Services
 
 - **`orchestrator-api`**: control plane для управления знаниями (документы/чанки), индексацией, промтами, статусами, логами и аудитом.
@@ -30,6 +32,10 @@ incoming -> normalize -> search Qdrant -> load chunks from Postgres -> build pro
 ```
 
 Оркестр **не** участвует в runtime-цепочке.
+
+## HTTP API
+
+Единый справочник по всем маршрутам обоих сервисов: **[`http-api-reference.md`](http-api-reference.md)**.
 
 ## Decisions (фиксируем по мере развития)
 
