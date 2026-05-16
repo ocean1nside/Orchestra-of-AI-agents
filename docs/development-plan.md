@@ -12,6 +12,7 @@
 - Защита оркестратора: **`ORCHESTRATOR_REQUIRE_API_KEY`** + **`API_KEY_DEV`** (заголовки `X-Api-Key` / `Bearer`); smoke: **`scripts/smoke_stack.py`**; **infrastructure/status** учитывает **RQ workers** для `indexing_worker`.
 - `indexing-worker` (RQ) в compose.
 - SocratiCode: индекс проекта в Cursor через MCP; контейнер `socraticode` в dev — вспомогательный.
+- **Тестовые UI** в `test_interfaces/agent_support_gleb/` (chats / widjet / console): в dev-compose, профиль `devtools`, порты 8788–8790 — только для проверки backend, не prod.
 
 ## Ближайшие шаги (приоритет)
 

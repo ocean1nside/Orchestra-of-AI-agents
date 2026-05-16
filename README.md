@@ -58,13 +58,15 @@ copy apps\orchestrator-api\.env.example apps\orchestrator-api\.env
 copy apps\agents\vendor-support-agent\.env.example apps\agents\vendor-support-agent\.env
 ```
 
-Заполните секреты и URL в двух последних файлах по комментариям внутри. Подробнее: `docs/handover/environment.md`.
+Заполните секреты и URL в двух последних файлах по комментариям внутри. Подробнее: `docs/handover/environment.md`. **Перенос на сервер:** `docs/handover/server-deploy.md`.
 
 2. Запускайте compose **из корня репозитория** (важно для `${POSTGRES_*}` и `../.env` в compose-файлах):
 
 ```bash
 docker compose -f infra/docker-compose.dev.yml --profile devtools up -d --build
 ```
+
+С профилем **`devtools`** дополнительно поднимаются тестовые UI (`test_interfaces/agent_support_gleb/`): **8788** (чаты оператора), **8789** (виджет), **8790** (консоль + оркестратор). Ключи берутся из `apps/agents/vendor-support-agent/.env` (и оркестратора для console).
 
 **Вариант ближе к серверу** (без профиля devtools, порты **8000** и **8010** на хосте):
 

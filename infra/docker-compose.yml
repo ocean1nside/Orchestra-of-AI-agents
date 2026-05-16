@@ -53,7 +53,7 @@ services:
       - redis
       - postgres
       - qdrant
-    command: ["python", "-m", "orchestrator_api.worker"]
+    entrypoint: ["python", "-m", "orchestrator_api.worker"]
 
   vendor-support-agent:
     build:

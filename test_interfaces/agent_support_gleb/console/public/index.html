@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent console (widget + knowledge + prompts + chats)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f1115; color: #e8eaed; min-height: 100vh; display: flex; flex-direction: column; }
+    header { padding: 10px 16px; background: #151820; border-bottom: 1px solid #272b35; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    header h1 { margin: 0; font-size: 15px; font-weight: 600; }
+    header nav { display: flex; gap: 8px; }
+    header nav button { padding: 6px 10px; border-radius: 999px; border: none; background: #202430; color: #e8eaed; font-size: 13px; cursor: pointer; }
+    header nav button.active { background: #1a73e8; }
+    main { flex: 1; min-height: 0; display: flex; }
+    .view { flex: 1; display: none; }
+    .view.active { display: flex; }
+
+    /* Widget view */
+    .widget-page { flex-direction: column; padding: 20px 24px; }
+    .widget-page .hero { max-width: 760px; margin-bottom: 16px; }
+    .widget-page .hero h2 { margin: 0 0 6px; font-size: 18px; }
+    .widget-page .hero p { margin: 0; font-size: 13px; color: #9aa0a6; }
+
+    /* IMPORTANT: widget must not affect Agents layout */
+    #w-root { position: fixed; right: 20px; bottom: 20px; z-index: 50; font-size: 14px; }
+    /* Hide widget unless we are on widget view */
+    #view-widget:not(.active) #w-root { display: none; }
+    /* Safety net: also hide it when agents view is active */
+    body.view-agents #w-root { display: none; }
+    #w-launcher {
+      width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #1a73e8, #4285f4); color: #fff; font-size: 22px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.5);
+    }
+    #w-panel {
+      display: none; flex-direction: column; width: min(380px, calc(100vw - 40px));
+      height: min(520px, calc(100vh - 100px)); background: #1e222a; border-radius: 12px;
+      overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,.6); border: 1px solid #333;
+    }
+    #w-root.open #w-panel { display: flex; }
+    #w-root.open #w-launcher { display: none; }
+    #w-head { padding: 12px 14px; background: #252830; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; }
+    #w-head strong { font-size: 14px; }
+    #w-close { background: transparent; border: none; color: #9aa0a6; cursor: pointer; font-size: 20px; line-height: 1; padding: 4px 8px; }
+    #w-fields { padding: 10px 12px; font-size: 11px; color: #9aa0a6; border-bottom: 1px solid #2a2f38; display: grid; gap: 6px; }
+    #w-fields label { display: flex; flex-direction: column; gap: 2px; }
+    #w-fields input { font-size: 12px; padding: 6px 8px; border-radius: 6px; border: 1px solid #444; background: #12141a; color: #e8eaed; }
+    #w-messages { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .bubble { max-width: 92%; padding: 8px 10px; border-radius: 10px; font-size: 13px; line-height: 1.45; }
+    .bubble.user { align-self: flex-end; background: #30343f; }
+    .bubble.bot { align-self: flex-start; background: #1e3a2f; border: 1px solid #2d5a45; }
+    .bubble.err { align-self: stretch; background: #3c1f1f; border: 1px solid #8b4040; color: #f8b4b4; }
+    .bubble .who { font-size: 10px; text-transform: uppercase; color: #9aa0a6; margin-bottom: 4px; }
+    .bubble .src { margin-top: 8px; font-size: 11px; color: #9aa0a6; }
+    #w-foot { padding: 10px 12px; border-top: 1px solid #333; display: flex; gap: 8px; background: #252830; }
+    #w-input { flex: 1; min-height: 40px; max-height: 100px; resize: none; border-radius: 8px; border: 1px solid #444; background: #12141a; color: #e8eaed; padding: 8px; font-family: inherit; font-size: 13px; }
+    #w-send { flex-shrink: 0; padding: 0 16px; border: none; border-radius: 8px; background: #1a73e8; color: #fff; font-weight: 600; cursor: pointer; }
+    #w-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Agents view */
+    .agents-page { flex: 1; display: flex; min-height: 0; }
+    .agents-sidebar { width: 280px; min-width: 240px; border-right: 1px solid #272b35; background: #121520; display: flex; flex-direction: column; }
+    .agents-sidebar h2 { margin: 0; padding: 12px 14px; font-size: 13px; font-weight: 600; color: #9aa0a6; border-bottom: 1px solid #272b35; }
+    .agent-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #1f2330; }
+    .agent-item:hover { background: #1a1f2a; }
+    .agent-item.active { background: #273047; }
+    .agent-item .name { font-size: 13px; font-weight: 600; }
+    .agent-item .desc { margin-top: 4px; font-size: 11px; color: #9aa0a6; }
+
+    .agent-main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .agent-header { padding: 10px 16px; border-bottom: 1px solid #272b35; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #151820; }
+    .agent-header h2 { margin: 0; font-size: 14px; font-weight: 600; color: #e8eaed; }
+    .tab-buttons { display: flex; gap: 6px; }
+    .tab-buttons button { padding: 6px 10px; border-radius: 999px; border: none; background: #202430; color: #e8eaed; font-size: 13px; cursor: pointer; }
+    .tab-buttons button.active { background: #1a73e8; }
+
+    .agent-placeholder { padding: 14px 16px; color: #9aa0a6; font-size: 13px; }
+    .agents-body { flex: 1; display: flex; min-height: 0; }
+    .tab { flex: 1; display: none; min-height: 0; }
+    .tab.active { display: flex; }
+
+    /* Chats tab (reuse layout) */
+    .chats-left { width: 320px; border-right: 1px solid #333; display: flex; flex-direction: column; min-width: 260px; }
+    .chats-left h3 { margin: 0; padding: 10px 12px; font-size: 13px; color: #9aa0a6; font-weight: 600; }
+    #chatList { flex: 1; overflow: auto; }
+    .chat-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #2a2f38; font-size: 13px; }
+    .chat-item:hover { background: #2a2f38; }
+    .chat-item.active { background: #394457; }
+    .chat-item .id { font-family: ui-monospace, monospace; font-size: 11px; color: #8ab4f8; word-break: break-all; }
+    .chat-item .meta { color: #9aa0a6; margin-top: 4px; font-size: 11px; }
+    .chat-info { padding: 12px; font-size: 12px; border-top: 1px solid #333; background: #20232a; }
+    .chat-info button { margin: 4px 4px 0 0; padding: 6px 10px; cursor: pointer; border: none; border-radius: 4px; background: #444c5c; color: #fff; }
+    .chat-info button.primary { background: #1a73e8; }
+    .chat-info button.danger { background: #c5221f; }
+    .chats-right { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    #chatMessages { flex: 1; overflow: auto; padding: 12px; font-size: 13px; }
+    .msg { margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; max-width: 92%; }
+    .msg.user { background: #30343f; margin-right: auto; }
+    .msg.assistant { background: #1e3a2f; margin-left: auto; }
+    .msg.operator { background: #3d2e1a; margin-left: auto; border: 1px solid #8d6e63; }
+    .msg .role { font-size: 10px; color: #9aa0a6; margin-bottom: 4px; text-transform: uppercase; }
+    .chat-composer { padding: 10px 12px; border-top: 1px solid #333; display: flex; gap: 8px; background: #252830; }
+    .chat-composer textarea { flex: 1; min-height: 44px; max-height: 120px; resize: vertical; background: #1a1d23; color: #e8eaed; border: 1px solid #444; border-radius: 6px; padding: 8px; }
+    .chat-composer button { padding: 0 16px; border: none; border-radius: 6px; background: #1a73e8; color: #fff; cursor: pointer; font-weight: 600; }
+
+    .err { color: #f28b82; padding: 6px 10px; font-size: 12px; }
+
+    /* Knowledge tab */
+    .k-layout { flex: 1; display: flex; min-height: 0; }
+    .k-left { width: 320px; min-width: 260px; border-right: 1px solid #333; display: flex; flex-direction: column; }
+    .k-left-header { padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; border-bottom: 1px solid #272b35; }
+    .k-left-header button { padding: 4px 8px; font-size: 11px; border-radius: 6px; border: none; background: #202430; color: #e8eaed; cursor: pointer; }
+    #k-docs { flex: 1; overflow: auto; font-size: 12px; }
+    .k-doc { padding: 8px 10px; border-bottom: 1px solid #22262f; cursor: pointer; }
+    .k-doc:hover { background: #202430; }
+    .k-doc.active { background: #303845; }
+    .k-doc .title { font-weight: 500; }
+    .k-doc .meta { font-size: 11px; color: #9aa0a6; margin-top: 2px; }
+    .k-right { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .k-right-inner { flex: 1; display: flex; min-height: 0; }
+    .k-preview { flex: 1; padding: 10px 12px; overflow: auto; border-right: 1px solid #333; }
+    .k-preview h3 { margin: 0 0 8px; font-size: 14px; }
+    .k-chunk { margin-bottom: 8px; padding: 6px 8px; border-radius: 6px; background: #1b1f27; font-size: 12px; white-space: pre-wrap; }
+    .k-chunk small { display: block; font-size: 10px; color: #9aa0a6; margin-bottom: 4px; }
+    .k-form { width: 320px; max-width: 360px; padding: 10px 12px; font-size: 12px; }
+    .k-form h3 { margin: 0 0 6px; font-size: 13px; }
+    .k-form label { display: block; margin-top: 8px; }
+    .k-form input, .k-form textarea { width: 100%; margin-top: 2px; border-radius: 6px; border: 1px solid #444; background: #12141a; color: #e8eaed; padding: 6px 8px; font-size: 12px; font-family: inherit; }
+    .k-form textarea { min-height: 120px; resize: vertical; }
+    .k-form button { margin-top: 8px; padding: 6px 10px; border-radius: 6px; border: none; background: #1a73e8; color: #fff; cursor: pointer; font-size: 12px; }
+
+    /* Prompts tab */
+    .p-layout { flex: 1; display: flex; min-height: 0; }
+    .p-left { width: 260px; border-right: 1px solid #333; padding: 10px 12px; font-size: 12px; }
+    .p-left label { display: block; margin-bottom: 6px; }
+    .p-left input { width: 100%; border-radius: 6px; border: 1px solid #444; background: #12141a; color: #e8eaed; padding: 6px 8px; font-size: 12px; }
+    .p-left button { margin-top: 6px; padding: 6px 10px; border-radius: 6px; border: none; background: #202430; color: #e8eaed; cursor: pointer; font-size: 12px; }
+    .p-left button.primary { background: #1a73e8; color: #fff; }
+    .p-right { flex: 1; display: flex; flex-direction: column; padding: 10px 12px; font-size: 12px; }
+    .p-right textarea { flex: 1; border-radius: 6px; border: 1px solid #444; background: #12141a; color: #e8eaed; padding: 8px; font-family: ui-monospace, monospace; font-size: 12px; resize: vertical; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Agent support console · widget + orchestrator + operator</h1>
+    <nav>
+      <button type="button" data-view="widget" class="active">Widget</button>
+      <button type="button" data-view="agents">Agents</button>
+    </nav>
+  </header>
+  <main>
+    <!-- Widget view -->
+    <section id="view-widget" class="view widget-page active">
+      <div class="hero">
+        <h2>Тест виджета</h2>
+        <p>Справа снизу — плавающая кнопка, как у боевого виджета поддержки. Сообщения уходят в <code>POST /api/v1/widget/invoke</code> агента через локальный прокси с ключом.</p>
+      </div>
+      <div id="w-root">
+        <button type="button" id="w-launcher" title="Открыть чат">💬</button>
+        <div id="w-panel">
+          <div id="w-head">
+            <strong>Поддержка (widget)</strong>
+            <button type="button" id="w-close" aria-label="Закрыть">×</button>
+          </div>
+          <div id="w-fields">
+            <label>conversation_id <input id="f-conv" autocomplete="off" /></label>
+            <label>user_id <input id="f-user" autocomplete="off" /></label>
+          </div>
+          <div id="w-messages"></div>
+          <div id="w-foot">
+            <textarea id="w-input" rows="2" placeholder="Сообщение…"></textarea>
+            <button type="button" id="w-send">Отпр.</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Agents view -->
+    <section id="view-agents" class="view agents-page">
+      <aside class="agents-sidebar">
+        <h2>Агенты</h2>
+        <div id="agentsList">
+          <div class="agent-item" data-agent="vendor-support-agent">
+            <div class="name">vendor-support-agent</div>
+            <div class="desc">Поддержка по базе знаний · operator API · widget/Telegram/MAX</div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="agent-main">
+        <div class="agent-header">
+          <h2 id="agentTitle">Выберите агента</h2>
+          <div class="tab-buttons" id="agentTabs" style="display:none">
+            <button type="button" data-tab="chats" class="active">Chats</button>
+            <button type="button" data-tab="knowledge">Knowledge</button>
+            <button type="button" data-tab="prompts">Prompts</button>
+          </div>
+        </div>
+
+        <div id="agentEmpty" class="agent-placeholder">Слева выберите агента. В будущем тут будет список разных агентов.</div>
+
+        <div class="agents-body" id="agentBody" style="display:none">
+        <!-- Chats tab -->
+        <div id="tab-chats" class="tab active">
+          <div class="chats-left">
+            <h3>Чаты</h3>
+            <div id="chatErrL" class="err"></div>
+            <div id="chatList"></div>
+            <div class="chat-info" id="chatDetailPanel" style="display:none">
+              <div><strong>Канал:</strong> <span id="dChannel"></span></div>
+              <div><strong>user_id:</strong> <span id="dUser"></span></div>
+              <div><strong>Контроль:</strong> <span id="dHolder"></span></div>
+              <div style="margin-top:8px">
+                <button type="button" class="primary" id="btnAi">ИИ</button>
+                <button type="button" class="danger" id="btnHuman">Менеджер</button>
+              </div>
+            </div>
+          </div>
+          <div class="chats-right">
+            <div id="chatErrR" class="err"></div>
+            <div id="chatMessages"></div>
+            <div class="chat-composer">
+              <textarea id="outText" placeholder="Ответ оператора в чат пользователя…"></textarea>
+              <button type="button" id="btnSend">Отправить</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Knowledge tab -->
+        <div id="tab-knowledge" class="tab">
+          <div class="k-layout">
+            <div class="k-left">
+              <div class="k-left-header">
+                <span>Документы знаний</span>
+                <button type="button" id="kReload">Обновить</button>
+              </div>
+              <div id="kErrL" class="err"></div>
+              <div id="k-docs"></div>
+            </div>
+            <div class="k-right">
+              <div id="kErrR" class="err"></div>
+              <div class="k-right-inner">
+                <div class="k-preview">
+                  <h3 id="kTitle">Выберите документ</h3>
+                  <div id="kChunks"></div>
+                </div>
+                <div class="k-form">
+                  <h3>Добавить документ</h3>
+                  <label>Название
+                    <input id="kNewTitle" />
+                  </label>
+                  <label>Содержимое (plain text / markdown)
+                    <textarea id="kNewContent"></textarea>
+                  </label>
+                  <button type="button" id="kAdd">Создать</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prompts tab -->
+        <div id="tab-prompts" class="tab">
+          <div class="p-layout">
+            <div class="p-left">
+              <label>prompt_key
+                <input id="pKey" placeholder="например: agent_system_prompt" />
+              </label>
+              <button type="button" id="pLoad">Загрузить</button>
+              <button type="button" class="primary" id="pSave">Сохранить</button>
+              <div id="pErr" class="err"></div>
+            </div>
+            <div class="p-right">
+              <textarea id="pContent" placeholder="Содержимое промта (content)…"></textarea>
+            </div>
+          </div>
+        </div>
+        </div> <!-- /agentBody -->
+      </section>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
+

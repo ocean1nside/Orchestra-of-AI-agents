@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Operator chats (test)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; background: #1a1d23; color: #e8eaed; }
+    header { padding: 10px 16px; background: #252830; border-bottom: 1px solid #333; font-size: 14px; }
+    main { flex: 1; display: flex; min-height: 0; }
+    .left { width: 320px; border-right: 1px solid #333; display: flex; flex-direction: column; min-width: 260px; }
+    .left h2 { margin: 0; padding: 10px 12px; font-size: 13px; color: #9aa0a6; font-weight: 600; }
+    #chatList { flex: 1; overflow: auto; }
+    .chat-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #2a2f38; font-size: 13px; }
+    .chat-item:hover { background: #2a2f38; }
+    .chat-item.active { background: #394457; }
+    .chat-item .id { font-family: ui-monospace, monospace; font-size: 11px; color: #8ab4f8; word-break: break-all; }
+    .chat-item .meta { color: #9aa0a6; margin-top: 4px; font-size: 11px; }
+    .info { padding: 12px; font-size: 12px; border-top: 1px solid #333; background: #20232a; }
+    .info button { margin: 4px 4px 0 0; padding: 6px 10px; cursor: pointer; border: none; border-radius: 4px; background: #444c5c; color: #fff; }
+    .info button.primary { background: #1a73e8; }
+    .info button.danger { background: #c5221f; }
+    .right { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    #messages { flex: 1; overflow: auto; padding: 12px; font-size: 13px; }
+    .msg { margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; max-width: 92%; }
+    .msg.user { background: #30343f; margin-right: auto; }
+    .msg.assistant { background: #1e3a2f; margin-left: auto; }
+    .msg.operator { background: #3d2e1a; margin-left: auto; border: 1px solid #8d6e63; }
+    .msg .role { font-size: 10px; color: #9aa0a6; margin-bottom: 4px; text-transform: uppercase; }
+    .composer { padding: 10px 12px; border-top: 1px solid #333; display: flex; gap: 8px; background: #252830; }
+    .composer textarea { flex: 1; min-height: 44px; max-height: 120px; resize: vertical; background: #1a1d23; color: #e8eaed; border: 1px solid #444; border-radius: 6px; padding: 8px; }
+    .composer button { padding: 0 16px; border: none; border-radius: 6px; background: #1a73e8; color: #fff; cursor: pointer; font-weight: 600; }
+    .err { color: #f28b82; padding: 8px 12px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>Тест operator API · список слева · переписка справа · ключ только на сервере (proxy)</header>
+  <main>
+    <section class="left">
+      <h2>Чаты</h2>
+      <div id="errL" class="err"></div>
+      <div id="chatList"></div>
+      <div class="info" id="detailPanel" style="display:none">
+        <div><strong>Канал:</strong> <span id="dChannel"></span></div>
+        <div><strong>user_id:</strong> <span id="dUser"></span></div>
+        <div><strong>Контроль:</strong> <span id="dHolder"></span></div>
+        <div style="margin-top:8px">
+          <button type="button" class="primary" id="btnAi">ИИ</button>
+          <button type="button" class="danger" id="btnHuman">Менеджер</button>
+        </div>
+      </div>
+    </section>
+    <section class="right">
+      <div id="errR" class="err"></div>
+      <div id="messages"></div>
+      <div class="composer">
+        <textarea id="outText" placeholder="Ответ оператора в чат пользователя…"></textarea>
+        <button type="button" id="btnSend">Отправить</button>
+      </div>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

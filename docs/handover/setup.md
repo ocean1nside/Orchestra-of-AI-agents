@@ -14,9 +14,19 @@
 
 Команда из **корня репозитория** (важно для путей `../.env`):
 
+**Dev** (порты наружу + тестовые UI 8788–8790 и SocratiCode):
+
+```bash
+docker compose -f infra/docker-compose.dev.yml --profile devtools up -d --build
+```
+
+**Стенд / сервер** (без тестовых UI):
+
 ```bash
 docker compose -f infra/docker-compose.yml up -d --build
 ```
+
+Тестовые интерфейсы: [`../../test_interfaces/agent_support_gleb/README.md`](../../test_interfaces/agent_support_gleb/README.md).
 
 ## Переменные окружения
 

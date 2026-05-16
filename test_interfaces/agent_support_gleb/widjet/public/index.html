@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Тест виджета → invoke</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; font-family: system-ui, sans-serif; background: #12141a; color: #e8eaed; }
+    .demo-bg { padding: 24px; max-width: 720px; }
+    .demo-bg h1 { font-size: 18px; font-weight: 600; margin: 0 0 8px; }
+    .demo-bg p { margin: 0; font-size: 13px; color: #9aa0a6; line-height: 1.5; }
+    /* плавающий виджет */
+    #w-root { position: fixed; right: 20px; bottom: 20px; z-index: 9999; font-size: 14px; }
+    #w-launcher {
+      width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #1a73e8, #4285f4); color: #fff; font-size: 22px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.4);
+    }
+    #w-panel {
+      display: none; flex-direction: column; width: min(380px, calc(100vw - 40px));
+      height: min(520px, calc(100vh - 100px)); background: #1e222a; border-radius: 12px;
+      overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,.5); border: 1px solid #333;
+    }
+    #w-root.open #w-panel { display: flex; }
+    #w-root.open #w-launcher { display: none; }
+    #w-head { padding: 12px 14px; background: #252830; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; }
+    #w-head strong { font-size: 14px; }
+    #w-close { background: transparent; border: none; color: #9aa0a6; cursor: pointer; font-size: 20px; line-height: 1; padding: 4px 8px; }
+    #w-fields { padding: 10px 12px; font-size: 11px; color: #9aa0a6; border-bottom: 1px solid #2a2f38; display: grid; gap: 6px; }
+    #w-fields label { display: flex; flex-direction: column; gap: 2px; }
+    #w-fields input { font-size: 12px; padding: 6px 8px; border-radius: 6px; border: 1px solid #444; background: #12141a; color: #e8eaed; }
+    #w-messages { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .bubble { max-width: 92%; padding: 8px 10px; border-radius: 10px; font-size: 13px; line-height: 1.45; }
+    .bubble.user { align-self: flex-end; background: #30343f; }
+    .bubble.bot { align-self: flex-start; background: #1e3a2f; border: 1px solid #2d5a45; }
+    .bubble.err { align-self: stretch; background: #3c1f1f; border: 1px solid #8b4040; color: #f8b4b4; }
+    .bubble .who { font-size: 10px; text-transform: uppercase; color: #9aa0a6; margin-bottom: 4px; }
+    .bubble .src { margin-top: 8px; font-size: 11px; color: #9aa0a6; }
+    #w-foot { padding: 10px 12px; border-top: 1px solid #333; display: flex; gap: 8px; background: #252830; }
+    #w-input { flex: 1; min-height: 40px; max-height: 100px; resize: none; border-radius: 8px; border: 1px solid #444; background: #12141a; color: #e8eaed; padding: 8px; font-family: inherit; font-size: 13px; }
+    #w-send { flex-shrink: 0; padding: 0 16px; border: none; border-radius: 8px; background: #1a73e8; color: #fff; font-weight: 600; cursor: pointer; }
+    #w-send:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div class="demo-bg">
+    <h1>Страница «сайта» (демо)</h1>
+    <p>Справа снизу — плавающая кнопка, как у виджета поддержки. Сообщения уходят на тот же <code>POST /api/v1/widget/invoke</code>, что и настоящий виджет (через локальный прокси с ключом).</p>
+  </div>
+  <div id="w-root">
+    <button type="button" id="w-launcher" title="Открыть чат">💬</button>
+    <div id="w-panel">
+      <div id="w-head">
+        <strong>Поддержка (тест)</strong>
+        <button type="button" id="w-close" aria-label="Закрыть">×</button>
+      </div>
+      <div id="w-fields">
+        <label>conversation_id <input id="f-conv" autocomplete="off" /></label>
+        <label>user_id <input id="f-user" autocomplete="off" /></label>
+      </div>
+      <div id="w-messages"></div>
+      <div id="w-foot">
+        <textarea id="w-input" rows="2" placeholder="Сообщение…"></textarea>
+        <button type="button" id="w-send">Отпр.</button>
+      </div>
+    </div>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

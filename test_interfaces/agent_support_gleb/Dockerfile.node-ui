@@ -1,0 +1,10 @@
+# Сборка одного тестового Node-прокси: docker build --build-arg UI_SUBDIR=chats .
+FROM node:20-alpine
+ARG UI_SUBDIR=chats
+WORKDIR /app
+COPY ${UI_SUBDIR}/package.json ${UI_SUBDIR}/package-lock.json ./
+RUN npm ci --omit=dev
+COPY ${UI_SUBDIR}/server.mjs ./
+COPY ${UI_SUBDIR}/public ./public
+ENV NODE_ENV=production
+CMD ["node", "server.mjs"]

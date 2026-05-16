@@ -75,7 +75,8 @@ services:
       - redis
       - postgres
       - qdrant
-    command: ["python", "-m", "orchestrator_api.worker"]
+    # Миграции выполняет orchestrator-api (общий ENTRYPOINT образа); worker только RQ.
+    entrypoint: ["python", "-m", "orchestrator_api.worker"]
 
   socraticode:
     working_dir: /workspace
@@ -83,6 +84,65 @@ services:
     command: ["sh", "-lc", "sleep infinity"]
     volumes:
       - ../:/workspace
+    profiles: ["devtools"]
+
+  # Тестовые UI (Node-прокси → agent / orchestrator). Только dev, не прод.
+  test-ui-chats:
+    build:
+      context: ../test_interfaces/agent_support_gleb
+      dockerfile: Dockerfile.node-ui
+      args:
+        UI_SUBDIR: chats
+    env_file:
+      - path: ../apps/agents/vendor-support-agent/.env
+        required: false
+    environment:
+      AGENT_URL: http://vendor-support-agent:8010
+      PORT: 8788
+    depends_on:
+      - vendor-support-agent
+    ports:
+      - "8788:8788"
+    profiles: ["devtools"]
+
+  test-ui-widjet:
+    build:
+      context: ../test_interfaces/agent_support_gleb
+      dockerfile: Dockerfile.node-ui
+      args:
+        UI_SUBDIR: widjet
+    env_file:
+      - path: ../apps/agents/vendor-support-agent/.env
+        required: false
+    environment:
+      AGENT_URL: http://vendor-support-agent:8010
+      PORT: 8789
+    depends_on:
+      - vendor-support-agent
+    ports:
+      - "8789:8789"
+    profiles: ["devtools"]
+
+  test-ui-console:
+    build:
+      context: ../test_interfaces/agent_support_gleb
+      dockerfile: Dockerfile.node-ui
+      args:
+        UI_SUBDIR: console
+    env_file:
+      - path: ../apps/agents/vendor-support-agent/.env
+        required: false
+      - path: ../apps/orchestrator-api/.env
+        required: false
+    environment:
+      AGENT_URL: http://vendor-support-agent:8010
+      ORCHESTRATOR_URL: http://orchestrator-api:8000
+      PORT: 8790
+    depends_on:
+      - vendor-support-agent
+      - orchestrator-api
+    ports:
+      - "8790:8790"
     profiles: ["devtools"]
 
 volumes:

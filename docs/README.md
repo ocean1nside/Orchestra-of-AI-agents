@@ -71,6 +71,6 @@
 
 Оркестратор **не** проксирует вопросы пользователя; runtime только у **vendor-support-agent** — см. `architecture.md` и `AGENTS.md`.
 
-### Внешние тестовые UI (не в этом git-репо)
+### Тестовые UI (dev-only, в репозитории)
 
-Локальные мини-интерфейсы для проверки API в реальном времени: **`C:\1CP\test_interfaces\agent_support_gleb\`** (см. `README.md` там — таблица портов; консоль чатов в подпапке `chats/`).
+**`test_interfaces/agent_support_gleb/`** — Node-прокси для ручной проверки агента и оркестратора. В Docker: профиль **`devtools`** в `infra/docker-compose.dev.yml` (порты **8788** / **8789** / **8790**). Не часть production runtime.

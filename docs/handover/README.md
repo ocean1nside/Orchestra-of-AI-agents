@@ -11,6 +11,7 @@
 | Файл | Зачем |
 |------|--------|
 | [`setup.md`](setup.md) | Compose, prerequisites, Alembic, ссылки на env и API |
+| [`server-deploy.md`](server-deploy.md) | **Перенос на сервер:** git clone, что копировать файлами, запуск prod-compose |
 | [`environment.md`](environment.md) | Слои `.env` (корень / orchestrator-api / vendor-support-agent), переменные, эскалация |
 
 ### Агент: входы и операторы
@@ -41,4 +42,4 @@
 4. [`channel-entrypoints.md`](channel-entrypoints.md) и нужный канал (`telegram` / `max`)  
 5. При консоли оператора — [`operator-api.md`](operator-api.md)
 
-Локальный тестовый UI (список чатов, ответы, ИИ/менеджер) вне репозитория: **`C:\1CP\test_interfaces\agent_support_gleb\chats\`** (proxy к **vendor-support-agent**, не к orchestrator-api).
+Тестовые UI в репозитории: **`test_interfaces/agent_support_gleb/`** — в dev-compose с профилем **`devtools`** (порты 8788–8790), прокси к **vendor-support-agent** и при необходимости к **orchestrator-api**. См. [`../../test_interfaces/agent_support_gleb/README.md`](../../test_interfaces/agent_support_gleb/README.md).
