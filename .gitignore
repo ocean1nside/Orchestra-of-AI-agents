@@ -11,6 +11,7 @@ __pycache__/
 # Handoff с секретами для внешних интеграций (не коммитить)
 handoff/*.local.md
 handoff/*.local.txt
+handoff/*.local.html
 
 storage/
 
