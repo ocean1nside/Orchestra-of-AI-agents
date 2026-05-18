@@ -1,45 +1,34 @@
 # Тестовые интерфейсы `agent_support_gleb`
 
-Мини-приложения для ручной проверки интеграций с **vendor-support-agent** (и при необходимости с оркестратором). Каждое живёт в своей подпапке и слушает **свой порт**, чтобы можно было запускать параллельно.
+## Agent Support Studio (основной)
 
-## Структура
+**[`studio/`](studio/)** — единый интерфейс на порту **8790**:
 
-| Папка | Порт по умолчанию | Назначение |
-|-------|-------------------|------------|
-| [`chats/`](chats/) | **8788** | Тестовая консоль **operator API**: список диалогов, лента сообщений, ответы оператора, переключение «ИИ / менеджер» |
-| [`widjet/`](widjet/) | **8789** | Тест **виджета**: плавающая кнопка на странице, отправка сообщений в `POST /api/v1/widget/invoke` |
-| [`console/`](console/) | **8790** | Полноценный тест‑интерфейс: виджет + управление знаниями, промптами и чатами через оркестратор и агента |
-
-Добавляя новые интерфейсы, задайте другой `PORT` в их `.env` / `package.json` и допишите строку в эту таблицу.
-
-## Общие принципы
-
-- Все приложения работают поверх **runtime-агента** (`vendor-support-agent`), а не через оркестратор.
-- Ключи доступа (`OPERATOR_API_KEY`, `WIDGET_API_KEY`) хранятся только в **Node‑прокси** и не попадают в браузер.
-- Внутренние форматы и эндпоинты:
-  - operator UI (`chats/`) → `GET/POST /api/v1/operator/...`
-  - виджет (`widjet/`) → `POST /api/v1/widget/invoke` c телом `InvokeRequest` (`channel="widget"`, `conversation_id`, `user_id`, `message`, `context`).
-
-Подробности по настройке и запуску — в `README.md` внутри каждой подпапки.
-
-## Запуск через Docker (рекомендуется)
-
-Из **корня репозитория** (нужны `.env` в корне и в `apps/...`, см. корневой `README.md`):
+- виджет (`POST /api/v1/widget/invoke`);
+- диалоги оператора (все каналы, скрытие, контроль ИИ/менеджер);
+- база знаний оркестратора (загрузка файлов, reindex, удаление);
+- промпты;
+- health / infrastructure status.
 
 ```bash
-docker compose -f infra/docker-compose.dev.yml --profile devtools up -d --build
+docker compose -f infra/docker-compose.dev.yml --profile devtools up -d --build test-ui-studio
 ```
 
-Тестовые UI поднимаются вместе с **vendor-support-agent** и **orchestrator-api**:
+→ http://localhost:8790
 
-| URL | Сервис compose |
-|-----|----------------|
-| http://localhost:8788 | `test-ui-chats` |
-| http://localhost:8789 | `test-ui-widjet` |
-| http://localhost:8790 | `test-ui-console` |
+## Устаревшие (не использовать)
 
-Ключи `WIDGET_API_KEY` / `OPERATOR_API_KEY` / `API_KEY_DEV` подхватываются из `.env` агента и оркестратора (файлы не коммитятся).
+| Папка | Порт | Замена |
+|-------|------|--------|
+| `chats/` | 8788 | Studio → «Диалоги» |
+| `widjet/` | 8789 | Studio → «Виджет» |
+| `console/` | 8790 | Studio |
 
-## Локально без Docker
+Сервисы `test-ui-chats`, `test-ui-widjet`, `test-ui-console` удалены из `docker-compose.dev.yml`.
 
-В каждой подпапке: `npm install`, скопировать `.env.example` → `.env.local`, `npm start`.
+## Принципы
+
+- Ключи (`WIDGET_API_KEY`, `OPERATOR_API_KEY`, `ORCHESTRATOR_API_KEY`) только в Node-прокси, не в браузере.
+- Runtime-вопросы идут в **агента**; управление знаниями и промптами — в **оркестратор**.
+
+Подробности: [`studio/README.md`](studio/README.md).

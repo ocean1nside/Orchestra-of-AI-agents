@@ -84,10 +84,10 @@ curl -s -H "X-Api-Key: YOUR_API_KEY_DEV" http://localhost:8000/api/v1/infrastruc
 Только для отладки, с профилем `devtools`:
 
 ```bash
-docker compose -f infra/docker-compose.dev.yml --profile devtools up -d --build test-ui-chats test-ui-widjet test-ui-console
+docker compose -f infra/docker-compose.dev.yml --profile devtools up -d --build test-ui-studio
 ```
 
-Порты 8788–8790. В проде лучше не публиковать наружу.
+Порт **8790** (Agent Support Studio). В проде лучше не публиковать наружу.
 
 ## 6. Что не переносить
 

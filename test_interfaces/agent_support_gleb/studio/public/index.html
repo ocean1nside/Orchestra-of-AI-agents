@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent Support Studio</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        Agent Support Studio
+        <small>vendor-support-agent · dev</small>
+      </div>
+      <nav id="nav">
+        <button type="button" class="nav-btn active" data-view="widget">Виджет</button>
+        <button type="button" class="nav-btn" data-view="chats">Диалоги</button>
+        <button type="button" class="nav-btn" data-view="knowledge">База знаний</button>
+        <button type="button" class="nav-btn" data-view="prompts">Промпты</button>
+        <button type="button" class="nav-btn" data-view="system">Система</button>
+      </nav>
+      <div class="status-dots">
+        <div class="dot" id="dot-agent">Агент</div>
+        <div class="dot" id="dot-orch">Оркестратор</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="viewTitle">Виджет</h1>
+          <p id="viewSubtitle">Тест канала widget → invoke</p>
+        </div>
+        <button type="button" class="btn btn-ghost" id="btnRefresh">Обновить</button>
+      </header>
+
+      <section class="panel">
+        <!-- Widget -->
+        <div class="view active" id="view-widget">
+          <div class="widget-layout">
+            <div class="card widget-settings">
+              <label>conversation_id
+                <input id="w-conv" type="text" autocomplete="off" />
+              </label>
+              <label>user_id
+                <input id="w-user" type="text" autocomplete="off" />
+              </label>
+              <div class="toolbar" style="margin-top:8px">
+                <button type="button" class="btn" id="w-newConv">Новый диалог</button>
+                <button type="button" class="btn btn-ghost" id="w-clear">Очистить чат</button>
+              </div>
+            </div>
+            <div class="card chat-pane">
+              <div class="chat-messages" id="w-messages"></div>
+              <div class="chat-composer">
+                <textarea id="w-input" rows="2" placeholder="Сообщение…"></textarea>
+                <button type="button" class="btn btn-primary" id="w-send">Отправить</button>
+              </div>
+            </div>
+          </div>
+          <div class="err" id="w-err"></div>
+        </div>
+
+        <!-- Chats -->
+        <div class="view" id="view-chats">
+          <div class="toolbar">
+            <label><input type="checkbox" id="ch-includeHidden" /> Показывать скрытые</label>
+            <button type="button" class="btn btn-ghost" id="ch-refresh">Обновить список</button>
+          </div>
+          <div class="card split-3" style="flex:1;min-height:0">
+            <div class="col">
+              <div class="col-head">Диалоги</div>
+              <div class="scroll" id="ch-list"></div>
+              <div class="err" id="ch-errL" style="margin:8px"></div>
+            </div>
+            <div class="col">
+              <div class="col-head">Сообщения</div>
+              <div class="scroll" id="ch-messages"></div>
+              <div class="chat-composer">
+                <textarea id="ch-reply" rows="2" placeholder="Ответ оператора…"></textarea>
+                <button type="button" class="btn btn-primary" id="ch-send">Отправить</button>
+              </div>
+              <div class="err" id="ch-errR" style="margin:8px"></div>
+            </div>
+            <div class="col">
+              <div class="col-head">Управление</div>
+              <div class="side-panel" id="ch-side">
+                <p style="color:var(--muted);font-size:13px">Выберите диалог слева</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Knowledge -->
+        <div class="view" id="view-knowledge">
+          <div class="toolbar">
+            <button type="button" class="btn btn-primary" id="k-reindexFull">Полный reindex</button>
+            <button type="button" class="btn" id="k-reindexDoc" disabled>Reindex документа</button>
+            <span id="k-jobStatus" style="font-size:13px;color:var(--muted)"></span>
+          </div>
+          <div class="card k-split" style="flex:1;min-height:0">
+            <div class="col">
+              <div class="col-head">Документы</div>
+              <div class="scroll" id="k-list"></div>
+              <div class="err" id="k-errL" style="margin:8px"></div>
+            </div>
+            <div class="k-detail">
+              <div class="dropzone" id="k-drop">Перетащите файл сюда или нажмите для выбора<input type="file" id="k-file" hidden /></div>
+              <div id="k-detail">
+                <p style="color:var(--muted)">Выберите документ или загрузите новый файл.</p>
+              </div>
+              <div class="err" id="k-errR"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prompts -->
+        <div class="view" id="view-prompts">
+          <div class="card p-split" style="flex:1;min-height:0">
+            <div class="col">
+              <div class="col-head">Ключи</div>
+              <div class="scroll" id="p-list"></div>
+            </div>
+            <div class="prompt-editor">
+              <div class="toolbar">
+                <strong id="p-keyLabel">—</strong>
+                <span style="flex:1"></span>
+                <button type="button" class="btn btn-primary" id="p-save" disabled>Сохранить</button>
+              </div>
+              <textarea id="p-content" placeholder="Выберите промпт слева…" disabled></textarea>
+              <div class="err" id="p-err"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- System -->
+        <div class="view" id="view-system">
+          <div class="toolbar">
+            <button type="button" class="btn btn-ghost" id="sys-refresh">Проверить всё</button>
+          </div>
+          <div class="sys-grid" id="sys-grid"></div>
+          <pre id="sys-raw" style="margin-top:16px;font-size:12px;background:var(--surface);padding:12px;border-radius:8px;border:1px solid var(--border);overflow:auto;max-height:240px"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
