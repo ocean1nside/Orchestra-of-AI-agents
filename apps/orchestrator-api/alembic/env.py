@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -11,6 +12,11 @@ from orchestrator_api.db.base import Base
 import orchestrator_api.db.models  # noqa: F401
 
 config = context.config
+
+# Пароль БД из .env (alembic.ini в образе часто устаревает).
+_db_url = (os.environ.get("DATABASE_URL") or "").strip()
+if _db_url:
+    config.set_main_option("sqlalchemy.url", _db_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

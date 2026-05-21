@@ -73,3 +73,17 @@ class OperatorVisibilityResponse(BaseModel):
     ok: bool = True
     conversation_id: str
     hidden: bool
+
+
+class OperatorUserFactItem(BaseModel):
+    fact_key: str
+    label: str
+    value: str
+    updated_at: datetime | None = None
+
+
+class OperatorUserFactsResponse(BaseModel):
+    conversation_id: str
+    channel: str
+    user_id: str
+    items: list[OperatorUserFactItem]

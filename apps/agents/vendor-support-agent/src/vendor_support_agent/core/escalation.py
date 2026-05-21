@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
-from urllib.parse import quote
+from urllib.parse import urlencode
 
 from vendor_support_agent.core.settings import Settings
 from vendor_support_agent.core.telegram_outbound import send_message
@@ -50,7 +50,6 @@ def parse_escalation_telegram_chat_id(settings: Settings) -> int | None:
         return None
 
 
-# Срабатывают только при умеренной уверенности RAG (см. compute_escalation).
 _ANSWER_HEDGE_PHRASES = (
     "не уверен",
     "не могу подтвердить",
@@ -76,28 +75,94 @@ def answer_signals_uncertainty(answer: str) -> bool:
     return any(p in a for p in _ANSWER_HEDGE_PHRASES)
 
 
-def build_quick_chat_link(*, settings: Settings, req: InvokeRequest) -> str:
-    """Ссылка для операторов: для Telegram — t.me/c/… при -100…; иначе заглушка с параметрами."""
-    if req.channel == "telegram":
-        try:
-            cid = int(str(req.conversation_id).strip())
-            s = str(cid)
-            if s.startswith("-100") and len(s) > 4:
-                return f"https://t.me/c/{s[4:]}/"
-            if cid > 0:
-                try:
-                    uid = int(str(req.user_id).strip())
-                    return f"tg://user?id={uid}"
-                except ValueError:
-                    pass
-        except (TypeError, ValueError):
-            pass
+def build_telegram_direct_chat_link(req: InvokeRequest) -> str | None:
+    """Прямой чат с пользователем в Telegram (только channel=telegram)."""
+    if req.channel != "telegram":
+        return None
+    try:
+        cid = int(str(req.conversation_id).strip())
+        s = str(cid)
+        if s.startswith("-100") and len(s) > 4:
+            return f"https://t.me/c/{s[4:]}/"
+        if cid > 0:
+            try:
+                uid = int(str(req.user_id).strip())
+                return f"tg://user?id={uid}"
+            except ValueError:
+                pass
+    except (TypeError, ValueError):
+        pass
+    return None
+
+
+def build_studio_conversation_link(
+    *,
+    settings: Settings,
+    runtime_conversation_id: str,
+) -> str | None:
+    """
+    Ссылка на Agent Support Studio → вкладка «Диалоги» с выбранным conversation_id
+    (id из runtime_conversations / operator API).
+    """
     base = (settings.escalation_context_base_url or "").strip().rstrip("/")
     if not base:
-        base = "https://example.com/support-context"
-    q = quote(req.conversation_id, safe="")
-    u = quote(str(req.user_id), safe="")
-    return f"{base}?channel={req.channel}&conversation_id={q}&user_id={u}"
+        return None
+    if not base.endswith("/studio"):
+        studio_root = f"{base}/studio"
+    else:
+        studio_root = base
+    q = urlencode({"view": "chats", "conversation_id": runtime_conversation_id})
+    return f"{studio_root}/?{q}"
+
+
+def build_escalation_links(
+    *,
+    settings: Settings,
+    req: InvokeRequest,
+    runtime_conversation_id: str,
+) -> str:
+    """Текст блока ссылок для уведомления операторам."""
+    lines: list[str] = []
+    studio = build_studio_conversation_link(
+        settings=settings, runtime_conversation_id=runtime_conversation_id
+    )
+    if studio:
+        lines.append(f"📎 Studio (диалог): {studio}")
+    tg = build_telegram_direct_chat_link(req)
+    if tg:
+        lines.append(f"💬 Telegram (чат пользователя): {tg}")
+    if lines:
+        return "\n".join(lines)
+    # Fallback без Studio URL
+    q = urlencode(
+        {
+            "view": "chats",
+            "channel": req.channel,
+            "conversation_id": runtime_conversation_id,
+            "user_id": str(req.user_id),
+        }
+    )
+    return f"📎 ID диалога: {runtime_conversation_id}\n(задайте ESCALATION_CONTEXT_BASE_URL, напр. https://host/studio/?{q})"
+
+
+def build_quick_chat_link(
+    *,
+    settings: Settings,
+    req: InvokeRequest,
+    runtime_conversation_id: str,
+) -> str:
+    """Обратная совместимость: основная ссылка — Studio."""
+    studio = build_studio_conversation_link(
+        settings=settings, runtime_conversation_id=runtime_conversation_id
+    )
+    if studio:
+        return studio
+    tg = build_telegram_direct_chat_link(req)
+    if tg:
+        return tg
+    return build_escalation_links(
+        settings=settings, req=req, runtime_conversation_id=runtime_conversation_id
+    )
 
 
 @dataclass
@@ -122,7 +187,6 @@ def compute_escalation(
     elif confidence < 0.45 and answer_signals_uncertainty(answer):
         reasons.append("hedged_answer")
 
-    # Уникальные, стабильный порядок
     seen: set[str] = set()
     uniq = []
     for r in reasons:
@@ -162,10 +226,6 @@ USER_REQUEST_ESCALATION_ACK = (
 
 
 def format_user_facing_answer(*, llm_answer: str, decision: EscalationDecision) -> str:
-    """
-    Текст пользователю после эскалации.
-    Явный запрос оператора — короткое подтверждение без «воды» из модели.
-    """
     if decision.should_escalate and "user_request" in decision.reasons:
         return USER_REQUEST_ESCALATION_ACK
     return append_escalation_user_notice(llm_answer, decision)
@@ -189,6 +249,7 @@ async def send_escalation_notification(
     *,
     settings: Settings,
     req: InvokeRequest,
+    runtime_conversation_id: str,
     user_message: str,
     answer: str,
     confidence: float,
@@ -204,7 +265,9 @@ async def send_escalation_notification(
     if dest is None:
         return
 
-    link = build_quick_chat_link(settings=settings, req=req)
+    links = build_escalation_links(
+        settings=settings, req=req, runtime_conversation_id=runtime_conversation_id
+    )
     um = user_message.strip() or "—"
     ans = (answer or "").strip() or "—"
     if len(um) > 1200:
@@ -216,12 +279,13 @@ async def send_escalation_notification(
         "🚨 Эскалация vendor-support\n\n"
         f"Канал: {req.channel}\n"
         f"user_id: {req.user_id}\n"
-        f"conversation_id: {req.conversation_id}\n"
+        f"conversation_id (внешний): {req.conversation_id}\n"
+        f"ID в Studio / БД: {runtime_conversation_id}\n"
         f"Уверенность RAG (эвристика): {confidence:.2f}\n"
         f"Причина: {_reason_labels(decision.reasons)}\n\n"
         f"Сообщение пользователя:\n{um}\n\n"
         f"Ответ агента (черновик):\n{ans}\n\n"
-        f"Быстрый контекст / чат:\n{link}"
+        f"{links}"
     )
 
     try:

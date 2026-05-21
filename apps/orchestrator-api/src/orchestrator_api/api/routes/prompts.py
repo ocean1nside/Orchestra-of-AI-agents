@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from orchestrator_api.db.models.prompt import PromptTemplate, PromptVersion
 from orchestrator_api.db.session import get_db
 from orchestrator_api.schemas.prompts import (
+    PromptCreateBody,
     PromptListItem,
     PromptListResponse,
     PromptOut,
@@ -19,6 +20,39 @@ from orchestrator_api.schemas.prompts import (
 )
 
 router = APIRouter()
+
+
+@router.post("/prompts", response_model=PromptOut, status_code=201)
+async def create_prompt(body: PromptCreateBody, db: AsyncSession = Depends(get_db)) -> PromptOut:
+    exists = (
+        await db.execute(select(PromptTemplate).where(PromptTemplate.prompt_key == body.prompt_key))
+    ).scalar_one_or_none()
+    if exists is not None:
+        raise HTTPException(status_code=409, detail=f"prompt_key already exists: {body.prompt_key}")
+
+    now = datetime.utcnow()
+    db.add(
+        PromptTemplate(
+            prompt_key=body.prompt_key,
+            description=(body.description or "").strip(),
+            created_at=now,
+        )
+    )
+    pv = PromptVersion(
+        id=f"pv_{uuid4().hex}",
+        prompt_key=body.prompt_key,
+        version=1,
+        content=body.content.strip(),
+        created_at=now,
+    )
+    db.add(pv)
+    await db.commit()
+    return PromptOut(
+        prompt_key=body.prompt_key,
+        version=1,
+        content=pv.content,
+        updated_at=pv.created_at,
+    )
 
 
 @router.get("/prompts", response_model=PromptListResponse)

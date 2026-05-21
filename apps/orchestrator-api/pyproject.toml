@@ -28,6 +28,9 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"orchestrator_api.modules.knowledge" = ["*.md"]
+
 [tool.uvicorn]
 factory = true
 

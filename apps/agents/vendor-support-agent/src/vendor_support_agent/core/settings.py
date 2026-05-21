@@ -40,8 +40,12 @@ class Settings(BaseSettings):
 
     # Эскалация: уведомления в Telegram-группу (бот должен быть админом). Пусто = эскалация отключена.
     escalation_telegram_chat_id: str = Field(default="", validation_alias="ESCALATION_TELEGRAM_CHAT_ID")
-    # Заглушка ссылки «открыть контекст» для не-Telegram каналов (query: channel, conversation_id, user_id).
+    # Базовый URL Studio без завершающего слэша, напр. https://host (к пути добавится /studio/?view=chats&conversation_id=…).
     escalation_context_base_url: str = Field(default="", validation_alias="ESCALATION_CONTEXT_BASE_URL")
+
+    user_memory_enabled: bool = Field(default=True, validation_alias="USER_MEMORY_ENABLED")
+    user_memory_use_llm: bool = Field(default=True, validation_alias="USER_MEMORY_USE_LLM")
+    user_memory_max_facts: int = Field(default=30, validation_alias="USER_MEMORY_MAX_FACTS")
 
 
 def get_settings() -> Settings:

@@ -7,20 +7,21 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-orchestrator}
+    # Только localhost: иначе боты в интернете брутят postgres и меняют пароль.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
 
   qdrant:
     image: qdrant/qdrant:v1.11.3
     ports:
-      - "6333:6333"
+      - "127.0.0.1:6333:6333"
     volumes:
       - qdrant_data:/qdrant/storage
 
@@ -41,7 +42,7 @@ services:
       - redis
       - qdrant
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
 
   vendor-support-agent:
     build:
@@ -57,7 +58,7 @@ services:
       - postgres
       - qdrant
     ports:
-      - "8010:8010"
+      - "127.0.0.1:8010:8010"
 
   indexing-worker:
     build:
@@ -94,6 +95,8 @@ services:
       args:
         UI_SUBDIR: studio
     env_file:
+      - path: ../.env
+        required: true
       - path: ../apps/agents/vendor-support-agent/.env
         required: false
       - path: ../apps/orchestrator-api/.env
@@ -101,13 +104,13 @@ services:
     environment:
       AGENT_URL: http://vendor-support-agent:8010
       ORCHESTRATOR_URL: http://orchestrator-api:8000
-      ORCHESTRATOR_API_KEY: ${API_KEY_DEV:-}
       PORT: 8790
+      STUDIO_BASE_PATH: /studio
     depends_on:
       - vendor-support-agent
       - orchestrator-api
     ports:
-      - "8790:8790"
+      - "127.0.0.1:8790:8790"
     profiles: ["devtools"]
 
 volumes:

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     embedding_model: str = Field(default="text-embedding-3-small", validation_alias="EMBEDDING_MODEL")
     vector_dimensions: int = Field(default=384, validation_alias="VECTOR_DIMENSIONS")
+    knowledge_normalize_model: str = Field(
+        default="gpt-4o-mini",
+        validation_alias="KNOWLEDGE_NORMALIZE_MODEL",
+    )
 
     vendor_support_agent_base_url: str = Field(
         default="http://vendor-support-agent:8010",

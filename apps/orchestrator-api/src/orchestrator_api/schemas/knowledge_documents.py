@@ -38,3 +38,39 @@ class DocumentCreateResponse(BaseModel):
 class DocumentListResponse(BaseModel):
     items: list[DocumentOut]
 
+
+class ChunkOut(BaseModel):
+    chunk_id: str
+    chunk_index: int
+    char_count: int
+    content: str
+    metadata: dict[str, Any]
+
+
+class DocumentChunksResponse(BaseModel):
+    document_id: str
+    title: str
+    status: DocumentStatus
+    total_chunks: int
+    items: list[ChunkOut]
+
+
+class NormalizeRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=200_000)
+    title: str | None = Field(default=None, max_length=512)
+
+
+class NormalizeResponse(BaseModel):
+    markdown: str
+    model: str
+    char_count: int
+
+
+class PrepareAiResponse(BaseModel):
+    document_id: str
+    status: DocumentStatus
+    job_id: str | None = None
+    model: str
+    char_count: int
+    message: str
+

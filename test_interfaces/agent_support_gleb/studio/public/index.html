@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agent Support Studio</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="app">
@@ -94,21 +94,24 @@
 
         <!-- Knowledge -->
         <div class="view" id="view-knowledge">
-          <div class="toolbar">
-            <button type="button" class="btn btn-primary" id="k-reindexFull">Полный reindex</button>
-            <button type="button" class="btn" id="k-reindexDoc" disabled>Reindex документа</button>
-            <span id="k-jobStatus" style="font-size:13px;color:var(--muted)"></span>
+          <div class="toolbar compact-toolbar">
+            <button type="button" class="btn btn-primary" id="k-addOpen">+ Добавить документ</button>
+            <button type="button" class="btn btn-ghost" id="k-guideOpen">Как подготовить файл</button>
+            <span style="flex:1"></span>
+            <button type="button" class="btn btn-ghost" id="k-reindexFull">Переиндексировать всё</button>
+            <button type="button" class="btn btn-primary" id="k-prepareAiDoc" disabled>Разобрать через ИИ</button>
+            <button type="button" class="btn btn-ghost" id="k-reindexDoc" disabled>Только reindex</button>
+            <span class="job-line" id="k-jobStatus"></span>
           </div>
           <div class="card k-split" style="flex:1;min-height:0">
             <div class="col">
-              <div class="col-head">Документы</div>
+              <div class="col-head">Список документов</div>
               <div class="scroll" id="k-list"></div>
-              <div class="err" id="k-errL" style="margin:8px"></div>
+              <div class="err" id="k-errL"></div>
             </div>
             <div class="k-detail">
-              <div class="dropzone" id="k-drop">Перетащите файл сюда или нажмите для выбора<input type="file" id="k-file" hidden /></div>
               <div id="k-detail">
-                <p style="color:var(--muted)">Выберите документ или загрузите новый файл.</p>
+                <p class="empty-hint">Выберите документ слева или нажмите «+ Добавить документ».</p>
               </div>
               <div class="err" id="k-errR"></div>
             </div>
@@ -117,22 +120,198 @@
 
         <!-- Prompts -->
         <div class="view" id="view-prompts">
+          <div class="card wizard prompt-wizard">
+            <div class="wizard-head">
+              <h2>Инструкции для агента</h2>
+              <p>Блоки склеиваются в системный промпт: роль → правила ответа → стиль → ваши доп. правила.</p>
+            </div>
+            <button type="button" class="btn btn-primary" id="p-createOpen">+ Создать новый блок инструкций</button>
+          </div>
           <div class="card p-split" style="flex:1;min-height:0">
             <div class="col">
-              <div class="col-head">Ключи</div>
+              <div class="col-head">Разделы</div>
               <div class="scroll" id="p-list"></div>
             </div>
             <div class="prompt-editor">
-              <div class="toolbar">
-                <strong id="p-keyLabel">—</strong>
-                <span style="flex:1"></span>
-                <button type="button" class="btn btn-primary" id="p-save" disabled>Сохранить</button>
+              <div id="p-editorEmpty" class="empty-hint">Выберите блок слева или создайте новый.</div>
+              <div id="p-editorForm" class="hidden">
+                <div class="editor-meta">
+                  <div>
+                    <div class="field-label" id="p-sectionLabel">—</div>
+                    <div class="field-hint" id="p-keyHint">ключ: —</div>
+                  </div>
+                  <button type="button" class="btn btn-primary" id="p-save">Сохранить новую версию</button>
+                </div>
+                <label class="field">
+                  <span class="field-label">Краткое описание (для себя)</span>
+                  <input id="p-desc" type="text" placeholder="Необязательно" />
+                </label>
+                <label class="field grow">
+                  <span class="field-label">Текст инструкции</span>
+                  <textarea id="p-content" placeholder="Что должен делать агент…"></textarea>
+                </label>
               </div>
-              <textarea id="p-content" placeholder="Выберите промпт слева…" disabled></textarea>
               <div class="err" id="p-err"></div>
             </div>
           </div>
         </div>
+
+        <dialog id="k-add-dialog" class="studio-dialog studio-dialog--wide">
+          <form method="dialog" id="k-add-form">
+            <h3>Добавить документ в базу знаний</h3>
+            <p class="dialog-lead">Файлы проходят <strong>обязательную ИИ-подготовку</strong> в Markdown, затем индексация. Статус <strong>«В поиске»</strong> — документ в поиске бота.</p>
+            <details class="guide-box">
+              <summary>Как подготовить файл (кратко)</summary>
+              <div class="guide-body">
+                <p><strong>Форматы:</strong> Markdown (.md), текст UTF-8 (.txt), Word (.docx). PDF не поддерживается — сохраните в .md или .docx.</p>
+                <p><strong>Нарезка:</strong> по абзацам и заголовкам (~1000 симв., перекрытие ~150), не по середине слов.</p>
+                <ul>
+                  <li>Одна тема на файл; разделы <code>##</code>, шаги списком.</li>
+                  <li>Грязный Word/docx → кнопка <strong>«Подготовить через ИИ»</strong>, затем проверка на вкладке «Текст».</li>
+                  <li>Шаблон: <code>docs/handover/knowledge-content-template.md</code></li>
+                </ul>
+                <p class="guide-more">Гайд: <code>docs/handover/knowledge-documents-guide.md</code></p>
+              </div>
+            </details>
+            <div class="mode-tabs">
+              <button type="button" class="mode-tab active" data-kmode="file">Файл</button>
+              <button type="button" class="mode-tab" data-kmode="text">Текст</button>
+            </div>
+            <div id="k-panel-file" class="wizard-body">
+              <label class="field">
+                <span class="field-label">Название в списке</span>
+                <input id="k-title" type="text" placeholder="Например: Импорт пользователей (CSV)" />
+              </label>
+              <div class="dropzone" id="k-drop">
+                <strong>Выберите или перетащите файл</strong>
+                <span>.md · .txt (UTF-8) · .docx</span>
+                <input type="file" id="k-file" accept=".md,.txt,.markdown,.docx,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
+              </div>
+              <p class="field-hint" id="k-aiNormalizeHint">После выбора файла запустится ИИ-подготовка (обязательно). Проверьте текст на вкладке «Текст», затем загрузите.</p>
+              <p class="job-line dialog-job" id="k-aiNormalizeStatus"></p>
+            </div>
+            <div id="k-panel-text" class="wizard-body hidden">
+              <label class="field">
+                <span class="field-label">Название документа</span>
+                <input id="k-textTitle" type="text" placeholder="Обязательно" />
+              </label>
+              <label class="field">
+                <span class="field-label">Текст (Markdown)</span>
+                <textarea id="k-textBody" rows="10" placeholder="# Заголовок&#10;&#10;Абзац с одной темой…"></textarea>
+              </label>
+            </div>
+            <label class="check-line dialog-check"><input type="checkbox" id="k-autoIndex" checked /> Сразу проиндексировать (рекомендуется)</label>
+            <p class="job-line dialog-job" id="k-modalJobStatus"></p>
+            <div class="err" id="k-wizardErr"></div>
+            <div class="dialog-actions">
+              <button type="button" class="btn btn-ghost" id="k-add-cancel">Отмена</button>
+              <button type="submit" class="btn btn-primary" id="k-add-submit">Загрузить и индексировать</button>
+            </div>
+          </form>
+        </dialog>
+
+        <dialog id="k-chunks-dialog" class="studio-dialog studio-dialog--wide studio-dialog--chunks">
+          <div class="guide-dialog-inner">
+            <h3 id="k-chunks-title">Чанки документа</h3>
+            <p class="dialog-lead" id="k-chunks-summary"></p>
+            <div class="chunks-toolbar">
+              <label class="check-line"><input type="checkbox" id="k-chunks-expand" /> Показывать полный текст каждого чанка</label>
+            </div>
+            <div class="chunks-list" id="k-chunks-list"></div>
+            <div class="err" id="k-chunks-err"></div>
+            <div class="dialog-actions">
+              <button type="button" class="btn btn-primary" id="k-chunks-close">Закрыть</button>
+            </div>
+          </div>
+        </dialog>
+
+        <dialog id="k-guide-dialog" class="studio-dialog studio-dialog--wide">
+          <div class="guide-dialog-inner">
+            <h3>Как готовить документы для базы знаний</h3>
+            <div class="guide-body guide-body--scroll">
+              <h4>1. Процесс</h4>
+              <ol>
+                <li>«+ Добавить документ» → файл или текст.</li>
+                <li>Понятное название + галочка «Сразу проиндексировать».</li>
+                <li>В списке статус <strong>В поиске</strong> — можно проверять бота.</li>
+              </ol>
+              <h4>2. Форматы файлов</h4>
+              <table class="guide-table">
+                <tr><th>Формат</th><th>Комментарий</th></tr>
+                <tr><td><strong>.md</strong></td><td>Лучший вариант: заголовки, списки, UTF-8</td></tr>
+                <tr><td><strong>.txt</strong></td><td>UTF-8, абзацы пустой строкой</td></tr>
+                <tr><td><strong>.docx</strong></td><td>Абзацы и ячейки таблиц</td></tr>
+                <tr><td>PDF</td><td>Не поддерживается → конвертируйте в .md / .docx</td></tr>
+              </table>
+              <h4>3. Нарезка на чанки</h4>
+              <p>Сначала границы абзацев и <code>##</code> заголовков, затем предложения и слова; лимит <strong>~1000 символов</strong>, перекрытие <strong>~150</strong>. До <strong>8</strong> чанков в ответ бота.</p>
+              <h4>3a. Подготовка через ИИ</h4>
+              <p>Кнопка в модалке загрузки: переписывает .md/.txt/.docx в структурированный Markdown без выдуманных фактов. Требуется <code>OPENAI_API_KEY</code>. После — вкладка «Текст», правки, загрузка.</p>
+              <h4>4. Как писать, чтобы хорошо искалось</h4>
+              <ul>
+                <li><strong>Один смысл — один абзац</strong> (300–1200 символов), между темами — пустая строка.</li>
+                <li><strong>Конкретика:</strong> «Настройки → Пользователи → Импорт», коды ошибок, обязательные поля.</li>
+                <li><strong>Заголовки</strong> <code>#</code> / <code>##</code> для структуры (в .md).</li>
+                <li><strong>Не</strong> одна простыня на 50 страниц без разрывов.</li>
+                <li><strong>Не</strong> сканы без текста; <strong>не</strong> cp1251 — только UTF-8 для .txt/.md.</li>
+              </ul>
+              <h4>5. Пример фрагмента (.md)</h4>
+              <pre class="guide-pre"># Импорт пользователей
+
+Импорт: Настройки → Пользователи → Импорт.
+
+## Формат CSV
+
+UTF-8. Колонки: email, role.
+
+## Шаги
+
+1. Откройте раздел пользователей.
+2. Загрузите CSV и дождитесь «Завершено».</pre>
+              <h4>6. Если не находится в ответах</h4>
+              <ul>
+                <li>Статус «В поиске»? Иначе — Reindex документа.</li>
+                <li>Вопрос ближе к словам из документа.</li>
+                <li>В проде для семантики: OpenAI-эмбеддинги + полный reindex.</li>
+              </ul>
+            </div>
+            <div class="dialog-actions">
+              <button type="button" class="btn btn-primary" id="k-guide-close">Понятно</button>
+            </div>
+          </div>
+        </dialog>
+
+        <dialog id="p-create-dialog" class="studio-dialog">
+          <form method="dialog" id="p-create-form">
+            <h3>Новый блок инструкций</h3>
+            <label class="field">
+              <span class="field-label">Тип блока</span>
+              <select id="p-create-type">
+                <option value="system">Системная роль — кто агент и его задача</option>
+                <option value="answer_policy">Правила ответа — честность, эскалация, без выдумок</option>
+                <option value="channel_style">Стиль — тон, длина, формат</option>
+                <option value="fallback">Если в базе нет данных — что сказать</option>
+                <option value="custom">Свой раздел (свой ключ)</option>
+              </select>
+            </label>
+            <label class="field hidden" id="p-create-key-wrap">
+              <span class="field-label">Технический ключ (латиница: rules_billing)</span>
+              <input id="p-create-key" type="text" pattern="[a-z][a-z0-9_]*" placeholder="rules_my_topic" />
+            </label>
+            <label class="field">
+              <span class="field-label">Название в списке</span>
+              <input id="p-create-title" type="text" placeholder="Например: Правила эскалации" />
+            </label>
+            <label class="field">
+              <span class="field-label">Текст инструкции</span>
+              <textarea id="p-create-content" rows="6" required placeholder="Опишите правило или роль…"></textarea>
+            </label>
+            <div class="dialog-actions">
+              <button type="button" class="btn btn-ghost" id="p-create-cancel">Отмена</button>
+              <button type="submit" class="btn btn-primary">Создать</button>
+            </div>
+          </form>
+        </dialog>
 
         <!-- System -->
         <div class="view" id="view-system">
@@ -147,6 +326,6 @@
   </div>
 
   <div class="toast" id="toast"></div>
-  <script src="/app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

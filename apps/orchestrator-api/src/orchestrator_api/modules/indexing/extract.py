@@ -24,6 +24,29 @@ def _read_docx_text(raw: bytes) -> str:
     return "\n\n".join(parts)
 
 
+def extract_text_from_bytes(*, filename: str, data: bytes) -> tuple[str, str]:
+    """Извлекает текст из загруженных байт (.md, .txt, .docx)."""
+    if not data:
+        raise ValueError("Empty file.")
+    suffix = Path(filename).suffix.lower()
+
+    if suffix == ".docx":
+        text = _read_docx_text(data)
+        if not text.strip():
+            raise ValueError("Empty document after DOCX extraction")
+        return text, suffix
+
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as e:
+        raise ValueError("Only UTF-8 text files are supported for .md/.txt") from e
+
+    if suffix not in {".md", ".txt", ""}:
+        raise ValueError(f"Unsupported file type: {suffix or 'no suffix'}")
+
+    return text, suffix or ".txt"
+
+
 def read_original_text(*, relative_path: str) -> tuple[str, str]:
     """
     Извлекает текст из оригинала в storage. Возвращает (text, suffix).
@@ -36,21 +59,4 @@ def read_original_text(*, relative_path: str) -> tuple[str, str]:
     if not full.is_file():
         raise FileNotFoundError(f"Original not found: {relative_path}")
 
-    suffix = full.suffix.lower()
-    raw = full.read_bytes()
-
-    if suffix == ".docx":
-        text = _read_docx_text(raw)
-        if not text.strip():
-            raise ValueError("Empty document after DOCX extraction")
-        return text, suffix
-
-    try:
-        text = raw.decode("utf-8")
-    except UnicodeDecodeError as e:
-        raise ValueError("Only UTF-8 text files are supported for .md/.txt") from e
-
-    if suffix not in {".md", ".txt", ""}:
-        raise ValueError(f"Unsupported file type: {suffix or 'no suffix'}")
-
-    return text, suffix or ".txt"
+    return extract_text_from_bytes(filename=full.name, data=full.read_bytes())

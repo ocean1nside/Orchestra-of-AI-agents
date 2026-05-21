@@ -11,10 +11,8 @@ from vendor_support_agent.core.agent_engine import AgentEngine
 from vendor_support_agent.core.escalation import parse_escalation_telegram_chat_id
 from vendor_support_agent.core.settings import get_settings
 from vendor_support_agent.core.telegram_outbound import (
-    edit_message_text,
     send_chat_action,
     send_message,
-    send_message_get_id,
 )
 from vendor_support_agent.schemas.invoke import InvokeRequest
 from vendor_support_agent.schemas.telegram import TelegramUpdate
@@ -67,25 +65,13 @@ async def _keep_typing(stop: asyncio.Event, *, bot_token: str, chat_id: int) -> 
             continue
 
 
-def _typewriter_steps(text_len: int) -> tuple[int, float]:
-    """Шаг символов и пауза между edit; короткие ответы — одним сообщением без «набора»."""
-    if text_len <= 480:
-        return text_len, 0.0
-    if text_len <= 2400:
-        return 72, 0.035
-    return 120, 0.045
-
-
-async def _reply_llm_then_typewriter(
+async def _reply_llm(
     *,
     bot_token: str,
     chat_id: int,
     req: InvokeRequest,
 ) -> None:
-    """
-    Сначала полный ответ от LLM (пока только «печатает» в чате), затем одно сообщение в чате
-    и быстрый набор через editMessageText — без sendMessageDraft + sendMessage (два пузыря).
-    """
+    """Полный ответ одним сообщением (стабильно для Telegram; без editMessageText по чанкам)."""
     stop = asyncio.Event()
     typing_task = asyncio.create_task(_keep_typing(stop, bot_token=bot_token, chat_id=chat_id))
     try:
@@ -99,19 +85,7 @@ async def _reply_llm_then_typewriter(
         with suppress(asyncio.CancelledError):
             await typing_task
 
-    step, delay = _typewriter_steps(len(answer))
-    if step >= len(answer):
-        await send_message(bot_token=bot_token, chat_id=chat_id, text=answer)
-        return
-
-    first = answer[:step]
-    mid = await send_message_get_id(bot_token=bot_token, chat_id=chat_id, text=first)
-    pos = step
-    while pos < len(answer):
-        pos = min(len(answer), pos + step)
-        if delay > 0:
-            await asyncio.sleep(delay)
-        await edit_message_text(bot_token=bot_token, chat_id=chat_id, message_id=mid, text=answer[:pos])
+    await send_message(bot_token=bot_token, chat_id=chat_id, text=answer)
 
 
 @router.post("/api/v1/telegram/webhook")
@@ -124,8 +98,7 @@ async def telegram_webhook(
 ) -> dict[str, bool]:
     """
     Реальный вебхук Telegram: тело — Update JSON.
-    Ответ: сначала полная генерация (статус «печатает»), затем одно сообщение и при длинном тексте
-    быстрый набор через editMessageText (без второго пузыря от draft+send).
+    Ответ: статус «печатает» на время RAG+LLM, затем одно полное сообщение sendMessage.
     """
     settings = get_settings()
     token = settings.telegram_bot_token.strip()
@@ -186,16 +159,14 @@ async def telegram_webhook(
     )
 
     try:
-        await _reply_llm_then_typewriter(bot_token=token, chat_id=msg.chat.id, req=req)
+        await _reply_llm(bot_token=token, chat_id=msg.chat.id, req=req)
     except Exception:
-        logger.exception("telegram webhook handling failed")
-        try:
+        logger.exception("telegram webhook handling failed chat_id=%s", msg.chat.id)
+        with suppress(Exception):
             await send_message(
                 bot_token=token,
                 chat_id=msg.chat.id,
                 text="Не удалось обработать сообщение. Попробуйте позже.",
             )
-        except Exception:
-            logger.exception("telegram sendMessage after error failed")
 
     return {"ok": True}

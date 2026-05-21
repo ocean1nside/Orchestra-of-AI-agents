@@ -17,6 +17,11 @@ from vendor_support_agent.core.llm_client import complete_chat, stream_chat
 from vendor_support_agent.core.prompt_builder import build_system_prompt, build_user_prompt
 from vendor_support_agent.core.conversation_control import get_control_holder
 from vendor_support_agent.core.rag_service import retrieve
+from vendor_support_agent.core.user_memory import (
+    UserFactRow,
+    prune_old_facts,
+    refresh_user_memory_from_message,
+)
 from vendor_support_agent.core.settings import get_settings
 from vendor_support_agent.db.models.runtime import RuntimeAgentLog, RuntimeConversation, RuntimeMessage
 from vendor_support_agent.db.session import SessionLocal
@@ -35,10 +40,19 @@ class AgentEngine:
         settings = get_settings()
         conv_id = _conversation_pk(req.conversation_id)
 
+        user_facts: list[UserFactRow] = []
         async with SessionLocal() as db:
             await self._persist_turn(db, conv_id=conv_id, req=req)
-
-        async with SessionLocal() as db:
+            if settings.user_memory_enabled:
+                user_facts = await refresh_user_memory_from_message(
+                    db, req=req, conversation_id=conv_id, settings=settings
+                )
+                await prune_old_facts(
+                    db,
+                    channel=req.channel,
+                    user_id=str(req.user_id),
+                    keep=settings.user_memory_max_facts,
+                )
             holder = await get_control_holder(db, conversation_id=conv_id)
         if holder == "human":
             return InvokeResponse(
@@ -52,9 +66,11 @@ class AgentEngine:
 
         async with SessionLocal() as db:
             chunks = await retrieve(db, query=req.message, limit=8, settings=settings)
+            system = await build_system_prompt(db)
 
-        system = build_system_prompt()
-        user_prompt = build_user_prompt(user_message=req.message, chunks=chunks)
+        user_prompt = build_user_prompt(
+            user_message=req.message, chunks=chunks, user_facts=user_facts
+        )
         answer = await complete_chat(system=system, user=user_prompt, settings=settings)
 
         confidence = min(1.0, max(0.0, sum(c.score for c in chunks) / max(1, len(chunks))))
@@ -72,6 +88,7 @@ class AgentEngine:
             await send_escalation_notification(
                 settings=settings,
                 req=req,
+                runtime_conversation_id=conv_id,
                 user_message=req.message,
                 answer=answer,
                 confidence=confidence,
@@ -114,19 +131,30 @@ class AgentEngine:
         settings = get_settings()
         conv_id = _conversation_pk(req.conversation_id)
 
+        user_facts: list[UserFactRow] = []
         async with SessionLocal() as db:
             await self._persist_turn(db, conv_id=conv_id, req=req)
-
-        async with SessionLocal() as db:
+            if settings.user_memory_enabled:
+                user_facts = await refresh_user_memory_from_message(
+                    db, req=req, conversation_id=conv_id, settings=settings
+                )
+                await prune_old_facts(
+                    db,
+                    channel=req.channel,
+                    user_id=str(req.user_id),
+                    keep=settings.user_memory_max_facts,
+                )
             holder = await get_control_holder(db, conversation_id=conv_id)
         if holder == "human":
             return
 
         async with SessionLocal() as db:
             chunks = await retrieve(db, query=req.message, limit=8, settings=settings)
+            system = await build_system_prompt(db)
 
-        system = build_system_prompt()
-        user_prompt = build_user_prompt(user_message=req.message, chunks=chunks)
+        user_prompt = build_user_prompt(
+            user_message=req.message, chunks=chunks, user_facts=user_facts
+        )
         answer = ""
         async for answer in stream_chat(system=system, user=user_prompt, settings=settings):
             yield answer
@@ -146,6 +174,7 @@ class AgentEngine:
             await send_escalation_notification(
                 settings=settings,
                 req=req,
+                runtime_conversation_id=conv_id,
                 user_message=req.message,
                 answer=answer,
                 confidence=confidence,

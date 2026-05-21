@@ -14,7 +14,7 @@ from orchestrator_api.db.models.idx import IdxJob, IdxJobEvent
 from orchestrator_api.db.models.kb import KbChunk, KbDocument, KbDocumentVersion
 from orchestrator_api.db.session import SessionLocal
 from orchestrator_api.modules.indexing import qdrant_index
-from orchestrator_api.modules.indexing.chunk_text import chunk_text
+from orchestrator_api.modules.indexing.chunk_text import choose_chunks
 from orchestrator_api.modules.indexing.embeddings import embed_batch
 from orchestrator_api.modules.indexing.extract import read_original_text
 
@@ -66,8 +66,13 @@ async def _index_one_document(db: AsyncSession, job_id: str, doc: KbDocument, se
     if ver is None or not ver.original_path:
         raise RuntimeError(f"No original file for document {doc.id}")
 
-    text, _suffix = read_original_text(relative_path=ver.original_path)
-    parts = chunk_text(text)
+    text, suffix = read_original_text(relative_path=ver.original_path)
+    meta_pre = doc.metadata_json or {}
+    parts = choose_chunks(
+        text,
+        file_format=suffix.lstrip(".") or str(meta_pre.get("file_format", "")),
+        ai_normalized=bool(meta_pre.get("ai_normalized")),
+    )
     if not parts:
         raise RuntimeError(f"Empty document after extraction: {doc.id}")
 
@@ -125,6 +130,22 @@ async def _index_one_document(db: AsyncSession, job_id: str, doc: KbDocument, se
 
     doc.status = "indexed"
     doc.updated_at = datetime.utcnow()
+    meta = dict(doc.metadata_json or {})
+    meta.update(
+        {
+            "chunk_count": len(parts),
+            "extracted_char_count": len(text),
+            "file_format": suffix.lstrip(".") or meta.get("file_format", "txt"),
+            "indexed_at": datetime.utcnow().isoformat() + "Z",
+            "original_path": ver.original_path,
+            "content_hash": ver.content_hash or meta.get("content_hash"),
+            "category": category,
+            "chunk_strategy": "markdown_sections"
+            if (meta.get("ai_normalized") or suffix.lstrip(".") in {"md", "markdown"})
+            else "recursive",
+        }
+    )
+    doc.metadata_json = meta
     return len(parts)
 
 

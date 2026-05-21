@@ -49,4 +49,12 @@ async def edit_message_text(*, bot_token: str, chat_id: int, message_id: int, te
             url,
             json={"chat_id": chat_id, "message_id": message_id, "text": payload},
         )
+        if r.status_code == 400:
+            # Telegram: текст не изменился — не ошибка для нас
+            try:
+                desc = str(r.json().get("description", "")).lower()
+            except Exception:
+                desc = r.text.lower()
+            if "message is not modified" in desc:
+                return
         r.raise_for_status()

@@ -18,6 +18,7 @@ from vendor_support_agent.core.operator_service import (
     set_conversation_hidden,
 )
 from vendor_support_agent.core.settings import get_settings
+from vendor_support_agent.core.user_memory import load_user_facts
 from vendor_support_agent.db.session import SessionLocal
 from vendor_support_agent.schemas.invoke import Channel
 from vendor_support_agent.schemas.operator import (
@@ -31,6 +32,8 @@ from vendor_support_agent.schemas.operator import (
     OperatorMessagesResponse,
     OperatorReplyBody,
     OperatorReplyResponse,
+    OperatorUserFactItem,
+    OperatorUserFactsResponse,
     OperatorVisibilityBody,
     OperatorVisibilityResponse,
 )
@@ -157,6 +160,38 @@ async def operator_set_control(conversation_id: str, body: OperatorControlBody) 
         ok=True,
         conversation_id=conversation_id,
         conversation_holder=_holder_field(updated),
+    )
+
+
+@router.get("/conversations/{conversation_id}/user-facts", response_model=OperatorUserFactsResponse)
+async def operator_user_facts(conversation_id: str) -> OperatorUserFactsResponse:
+    settings = get_settings()
+    async with SessionLocal() as db:
+        c = await get_conversation(db, conversation_id=conversation_id)
+        if c is None:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        if not settings.user_memory_enabled:
+            facts = []
+        else:
+            facts = await load_user_facts(
+                db,
+                channel=c.channel,
+                user_id=c.user_id,
+                limit=settings.user_memory_max_facts,
+            )
+    return OperatorUserFactsResponse(
+        conversation_id=conversation_id,
+        channel=c.channel,
+        user_id=c.user_id,
+        items=[
+            OperatorUserFactItem(
+                fact_key=f.fact_key,
+                label=f.label,
+                value=f.fact_value,
+                updated_at=f.updated_at,
+            )
+            for f in facts
+        ],
     )
 
 

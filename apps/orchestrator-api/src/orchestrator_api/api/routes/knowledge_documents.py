@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime
 from typing import Any
 
@@ -7,15 +8,19 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from orchestrator_api.db.models.kb import KbDocument, KbDocumentVersion
+from orchestrator_api.db.models.kb import KbChunk, KbDocument, KbDocumentVersion
 from orchestrator_api.db.session import get_db
+from orchestrator_api.modules.knowledge.document_prepare import prepare_document_with_ai
 from orchestrator_api.modules.knowledge.storage import save_original_bytes
 from orchestrator_api.schemas.knowledge_documents import (
+    ChunkOut,
+    DocumentChunksResponse,
     DocumentCreateJson,
     DocumentCreateResponse,
     DocumentListResponse,
     DocumentOut,
     DocumentUpdate,
+    PrepareAiResponse,
 )
 
 router = APIRouter()
@@ -56,7 +61,10 @@ async def create_document(
 
     if payload is not None:
         title = payload.title
-        metadata = payload.metadata or {}
+        metadata = dict(payload.metadata or {})
+        metadata.setdefault("upload_method", "text")
+        metadata.setdefault("file_format", "md")
+        metadata.setdefault("source_filename", "content.md")
         raw = payload.content.encode("utf-8")
         filename = "content.md"
     else:
@@ -66,6 +74,13 @@ async def create_document(
         raw = await file.read()
         if not raw:
             raise HTTPException(status_code=400, detail="Empty file.")
+        ext = os.path.splitext(filename)[1].lower()
+        metadata = {
+            "source_filename": filename,
+            "file_format": ext.lstrip(".") or "bin",
+            "upload_method": "file",
+            "byte_size": len(raw),
+        }
 
     doc = KbDocument(title=title, status="uploaded", metadata_json=metadata)
     db.add(doc)
@@ -100,6 +115,69 @@ async def get_document(document_id: str, db: AsyncSession = Depends(get_db)) -> 
     if row is None:
         raise HTTPException(status_code=404, detail="Document not found.")
     return _doc_out(row)
+
+
+@router.get("/documents/{document_id}/chunks", response_model=DocumentChunksResponse)
+async def list_document_chunks(
+    document_id: str, db: AsyncSession = Depends(get_db)
+) -> DocumentChunksResponse:
+    row = (await db.execute(select(KbDocument).where(KbDocument.id == document_id))).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    chunks = list(
+        (await db.execute(select(KbChunk).where(KbChunk.document_id == document_id))).scalars().all()
+    )
+
+    def _chunk_index(c: KbChunk) -> int:
+        meta = c.metadata_json or {}
+        try:
+            return int(meta.get("chunk_index", 0))
+        except (TypeError, ValueError):
+            return 0
+
+    chunks.sort(key=_chunk_index)
+    items = [
+        ChunkOut(
+            chunk_id=c.id,
+            chunk_index=_chunk_index(c),
+            char_count=len(c.content or ""),
+            content=c.content or "",
+            metadata=c.metadata_json or {},
+        )
+        for c in chunks
+    ]
+    return DocumentChunksResponse(
+        document_id=row.id,
+        title=row.title,
+        status=row.status,  # type: ignore[arg-type]
+        total_chunks=len(items),
+        items=items,
+    )
+
+
+@router.post("/documents/{document_id}/prepare-ai", response_model=PrepareAiResponse)
+async def prepare_document_ai(
+    document_id: str, db: AsyncSession = Depends(get_db)
+) -> PrepareAiResponse:
+    """ИИ-разбор оригинала → Markdown → новая версия файла → reindex документа."""
+    try:
+        doc, job_id, markdown, model = await prepare_document_with_ai(db, document_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+    return PrepareAiResponse(
+        document_id=doc.id,
+        status=doc.status,  # type: ignore[arg-type]
+        job_id=job_id,
+        model=model,
+        char_count=len(markdown),
+        message="Документ переписан через ИИ; индексация запущена."
+        if job_id
+        else "Документ переписан через ИИ.",
+    )
 
 
 @router.patch("/documents/{document_id}", response_model=DocumentOut)
