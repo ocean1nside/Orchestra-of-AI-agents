@@ -30,6 +30,10 @@ class Settings(BaseSettings):
         default="gpt-4o-mini",
         validation_alias="KNOWLEDGE_NORMALIZE_MODEL",
     )
+    prompt_tune_model: str = Field(
+        default="gpt-4o-mini",
+        validation_alias="PROMPT_TUNE_MODEL",
+    )
 
     vendor_support_agent_base_url: str = Field(
         default="http://vendor-support-agent:8010",

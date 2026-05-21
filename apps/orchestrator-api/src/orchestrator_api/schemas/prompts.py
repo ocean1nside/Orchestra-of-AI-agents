@@ -42,3 +42,38 @@ class PromptVersionItem(BaseModel):
 
 class PromptVersionsResponse(BaseModel):
     items: list[PromptVersionItem]
+
+
+class PromptTuneRequest(BaseModel):
+    feedback: str = Field(min_length=1, max_length=8000)
+
+
+class PromptTuneChange(BaseModel):
+    prompt_key: str
+    action: str  # update | create
+    content: str
+    rationale: str = ""
+
+
+class PromptTunePreviewResponse(BaseModel):
+    summary: str
+    log_entry: str
+    changes: list[PromptTuneChange]
+    model: str
+
+
+class PromptTuneApplyBody(BaseModel):
+    changes: list[PromptTuneChange] = Field(min_length=0)
+    log_entry: str = ""
+
+
+class PromptTuneAppliedItem(BaseModel):
+    prompt_key: str
+    action: str
+    version: int
+    rationale: str = ""
+
+
+class PromptTuneApplyResponse(BaseModel):
+    summary: str
+    applied: list[PromptTuneAppliedItem]

@@ -111,7 +111,13 @@ PUT /prompts/{key} — новая версия: content
 
 GET /prompts/{key}/versions — история версий
 
-Агент читает те же таблицы при ответе. Порядок: system, answer_policy, channel_style, fallback, затем остальные ключи по алфавиту. Если база пуста — файлы prompts/*.md в контейнере агента.
+POST /prompts/tune — предпросмотр правок по жалобе. Тело: {"feedback": "что не устраивает"}. Ответ: summary, log_entry, changes (массив с prompt_key, action, content, rationale), model. Нужен OPENAI_API_KEY.
+
+POST /prompts/tune/apply — применить предпросмотр. Тело: {"changes": [...], "log_entry": "..."}. Создаёт новые версии блоков и дописывает tuning_log.
+
+Ключ tuning_log не склеивается в системный промпт ответов пользователю (только журнал в Studio).
+
+Агент читает те же таблицы при ответе. Порядок: system, answer_policy, channel_style, fallback, затем остальные ключи по алфавиту (кроме tuning_log). Если база пуста — файлы prompts/*.md в контейнере агента.
 
 
 ЧАСТЬ 2. VENDOR-SUPPORT-AGENT
@@ -215,7 +221,7 @@ curl -sS -X PUT "http://127.0.0.1:8000/api/v1/prompts/system" -H "Content-Type: 
 ЧАСТЬ 4. ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ (ЧАСТЫЕ)
 
 orchestrator-api:
-DATABASE_URL, REDIS_URL, QDRANT_URL, QDRANT_COLLECTION, STORAGE_PATH, EMBED_PROVIDER (hash или openai), OPENAI_API_KEY, VENDOR_SUPPORT_AGENT_BASE_URL
+DATABASE_URL, REDIS_URL, QDRANT_URL, QDRANT_COLLECTION, STORAGE_PATH, EMBED_PROVIDER (hash или openai), OPENAI_API_KEY, KNOWLEDGE_NORMALIZE_MODEL, PROMPT_TUNE_MODEL, VENDOR_SUPPORT_AGENT_BASE_URL
 
 vendor-support-agent:
 DATABASE_URL, TELEGRAM_BOT_TOKEN, ESCALATION_TELEGRAM_CHAT_ID, ESCALATION_CONTEXT_BASE_URL, USER_MEMORY_ENABLED, WIDGET_API_KEY, OPERATOR_API_KEY

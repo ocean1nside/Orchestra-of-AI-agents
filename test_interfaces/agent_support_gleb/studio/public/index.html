@@ -125,6 +125,13 @@
               <h2>Инструкции для агента</h2>
               <p>Блоки склеиваются в системный промпт: роль → правила ответа → стиль → ваши доп. правила.</p>
             </div>
+            <div class="mode-tabs prompt-subtabs">
+              <button type="button" class="mode-tab active" data-ptab="editor">Редактор</button>
+              <button type="button" class="mode-tab" data-ptab="tune">Тюнинг</button>
+            </div>
+          </div>
+          <div id="p-panel-editor" class="prompt-panels">
+          <div class="card wizard prompt-wizard" style="margin-top:0">
             <button type="button" class="btn btn-primary" id="p-createOpen">+ Создать новый блок инструкций</button>
           </div>
           <div class="card p-split" style="flex:1;min-height:0">
@@ -152,6 +159,25 @@
                 </label>
               </div>
               <div class="err" id="p-err"></div>
+            </div>
+          </div>
+          </div>
+
+          <div id="p-panel-tune" class="prompt-panels hidden">
+            <div class="card tune-card">
+              <h3>Тюнинг по жалобе</h3>
+              <p class="dialog-lead">Опишите, что не устраивает в ответах бота. ИИ предложит правки в блоках инструкций; вы проверяете и применяете. Запись попадёт в блок <code>tuning_log</code> (не уходит пользователям).</p>
+              <label class="field grow">
+                <span class="field-label">Что не устраивает</span>
+                <textarea id="p-tune-feedback" rows="6" placeholder="Например: ответы слишком длинные; бот переспрашивает имя, хотя пользователь уже представился; грубит при отказе…"></textarea>
+              </label>
+              <div class="toolbar">
+                <button type="button" class="btn btn-primary" id="p-tune-run">Предложить правки</button>
+                <button type="button" class="btn hidden" id="p-tune-apply">Применить выбранные правки</button>
+              </div>
+              <p class="job-line" id="p-tune-status"></p>
+              <div id="p-tune-results" class="tune-results"></div>
+              <div class="err" id="p-tune-err"></div>
             </div>
           </div>
         </div>

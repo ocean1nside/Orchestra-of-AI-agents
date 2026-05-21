@@ -408,6 +408,33 @@ app.get(route("/api/orch/jobs/:id"), async (req, res) => {
   }
 });
 
+// Prompts — tune before :key routes
+app.post(route("/api/orch/prompts/tune/apply"), async (req, res) => {
+  try {
+    const { status, body } = await proxyJson(`${ORCH_URL}/api/v1/prompts/tune/apply`, {
+      method: "POST",
+      headers: orchHeaders(),
+      body: JSON.stringify(req.body || {}),
+    });
+    sendJson(res, status, body);
+  } catch (e) {
+    sendJson(res, 502, { detail: String(e?.message || e) });
+  }
+});
+
+app.post(route("/api/orch/prompts/tune"), async (req, res) => {
+  try {
+    const { status, body } = await proxyJson(`${ORCH_URL}/api/v1/prompts/tune`, {
+      method: "POST",
+      headers: orchHeaders(),
+      body: JSON.stringify(req.body || {}),
+    });
+    sendJson(res, status, body);
+  } catch (e) {
+    sendJson(res, 502, { detail: String(e?.message || e) });
+  }
+});
+
 // Prompts
 app.post(route("/api/orch/prompts"), async (req, res) => {
   try {

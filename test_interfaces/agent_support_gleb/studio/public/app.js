@@ -4,7 +4,7 @@ const VIEW_META = {
   widget: { title: "Виджет", subtitle: "Тест канала widget → POST /api/v1/widget/invoke" },
   chats: { title: "Диалоги", subtitle: "Operator API: все каналы, ответы, контроль ИИ/менеджер" },
   knowledge: { title: "База знаний", subtitle: "Добавление документов и индексация для ответов бота" },
-  prompts: { title: "Инструкции агента", subtitle: "Системная роль, правила ответа, стиль — редактируются здесь" },
+  prompts: { title: "Инструкции агента", subtitle: "Редактор блоков и вкладка «Тюнинг» — правка промптов по жалобе" },
   system: { title: "Система", subtitle: "Health агента, оркестратора и инфраструктуры" },
 };
 
@@ -15,6 +15,8 @@ let selectedChatId = null;
 let selectedDocId = null;
 let selectedPromptKey = null;
 let jobPollTimer = null;
+let pendingTune = null;
+let activePromptTab = "editor";
 
 function esc(s) {
   const d = document.createElement("div");
@@ -62,7 +64,10 @@ function setView(view) {
   if (view === "chats") startChatsPoll();
   else stopChatsPoll();
   if (view === "knowledge") loadDocList();
-  if (view === "prompts") loadPromptList();
+  if (view === "prompts") {
+    setPromptTab(activePromptTab);
+    loadPromptList();
+  }
   if (view === "system") refreshSystem();
 }
 
@@ -973,7 +978,27 @@ const PROMPT_SECTIONS = [
     keys: ["channel_style"],
     labels: { channel_style: "Стиль канала" },
   },
+  {
+    id: "tuning",
+    title: "Журнал тюнинга",
+    hint: "Не попадает в ответы бота — только история правок",
+    keys: ["tuning_log"],
+    labels: { tuning_log: "Журнал автотюнинга" },
+  },
 ];
+
+function setPromptTab(tab) {
+  activePromptTab = tab;
+  document.querySelectorAll("[data-ptab]").forEach((b) => {
+    b.classList.toggle("active", b.dataset.ptab === tab);
+  });
+  $("p-panel-editor").classList.toggle("hidden", tab !== "editor");
+  $("p-panel-tune").classList.toggle("hidden", tab !== "tune");
+}
+
+document.querySelectorAll("[data-ptab]").forEach((btn) => {
+  btn.addEventListener("click", () => setPromptTab(btn.dataset.ptab));
+});
 
 const PROMPT_KEY_TO_SECTION = {};
 for (const sec of PROMPT_SECTIONS) {
@@ -1109,6 +1134,102 @@ $("p-create-type").addEventListener("change", () => {
     $("p-create-key").value = t;
   }
 });
+function renderTunePreview(data) {
+  const box = $("p-tune-results");
+  box.innerHTML = "";
+  const sum = document.createElement("div");
+  sum.className = "tune-summary";
+  sum.innerHTML = `<strong>Итог:</strong> ${esc(data.summary || "")}`;
+  box.appendChild(sum);
+  if (data.log_entry) {
+    const log = document.createElement("p");
+    log.className = "field-hint";
+    log.innerHTML = `<strong>Запись в журнал:</strong> ${esc(data.log_entry)}`;
+    box.appendChild(log);
+  }
+  const changes = data.changes || [];
+  if (!changes.length) {
+    box.insertAdjacentHTML(
+      "beforeend",
+      '<p class="empty-hint">Правок в блоках не предложено — возможно, нужна база знаний, а не промпт.</p>',
+    );
+    $("p-tune-apply").classList.add("hidden");
+    return;
+  }
+  for (const ch of changes) {
+    const card = document.createElement("div");
+    card.className = "tune-change";
+    const actionLabel = ch.action === "create" ? "новый блок" : "обновление";
+    card.innerHTML = `
+      <h4>${esc(ch.prompt_key)} · ${esc(actionLabel)}</h4>
+      <div class="meta">${esc(ch.rationale || "")}</div>
+      <pre>${esc(ch.content || "")}</pre>
+    `;
+    box.appendChild(card);
+  }
+  $("p-tune-apply").classList.remove("hidden");
+}
+
+$("p-tune-run").addEventListener("click", async () => {
+  const feedback = ($("p-tune-feedback").value || "").trim();
+  $("p-tune-err").textContent = "";
+  $("p-tune-status").textContent = "";
+  pendingTune = null;
+  $("p-tune-apply").classList.add("hidden");
+  $("p-tune-results").innerHTML = "";
+  if (!feedback) {
+    $("p-tune-err").textContent = "Опишите, что не устраивает в ответах.";
+    return;
+  }
+  $("p-tune-run").disabled = true;
+  $("p-tune-status").textContent = "ИИ анализирует промпты…";
+  try {
+    const data = await api("/api/orch/prompts/tune", {
+      method: "POST",
+      body: JSON.stringify({ feedback }),
+    });
+    pendingTune = data;
+    renderTunePreview(data);
+    $("p-tune-status").textContent = "Модель: " + (data.model || "—");
+    toast("Предпросмотр готов");
+  } catch (e) {
+    $("p-tune-err").textContent = String(e.message || e);
+    $("p-tune-status").textContent = "";
+  } finally {
+    $("p-tune-run").disabled = false;
+  }
+});
+
+$("p-tune-apply").addEventListener("click", async () => {
+  if (!pendingTune) return;
+  $("p-tune-err").textContent = "";
+  $("p-tune-apply").disabled = true;
+  try {
+    const data = await api("/api/orch/prompts/tune/apply", {
+      method: "POST",
+      body: JSON.stringify({
+        changes: pendingTune.changes || [],
+        log_entry: pendingTune.log_entry || "",
+      }),
+    });
+    toast(data.summary || "Промпты обновлены");
+    pendingTune = null;
+    $("p-tune-apply").classList.add("hidden");
+    $("p-tune-feedback").value = "";
+    const lines = (data.applied || [])
+      .map((a) => `${a.prompt_key} → v${a.version}`)
+      .join(", ");
+    $("p-tune-results").innerHTML =
+      `<div class="tune-summary"><strong>Применено:</strong> ${esc(lines || "журнал")}</div>`;
+    await loadPromptList();
+    setPromptTab("editor");
+  } catch (e) {
+    $("p-tune-err").textContent = String(e.message || e);
+  } finally {
+    $("p-tune-apply").disabled = false;
+  }
+});
+
 $("p-create-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const type = $("p-create-type").value;

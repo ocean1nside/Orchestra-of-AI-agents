@@ -9,6 +9,8 @@ from vendor_support_agent.db.models.prompt import PromptTemplate, PromptVersion
 
 # Базовые блоки (порядок важен), затем остальные ключи из Studio
 CORE_PROMPT_KEYS = ("system", "answer_policy", "channel_style", "fallback")
+# Только Studio / журнал — не склеиваются в системный промпт ответов пользователю
+RUNTIME_EXCLUDED_PROMPT_KEYS = frozenset({"tuning_log"})
 
 
 async def get_latest_prompt_content(db: AsyncSession, prompt_key: str) -> str | None:
@@ -31,7 +33,7 @@ async def _ordered_prompt_keys(db: AsyncSession) -> list[str]:
     all_keys = set(rows)
     ordered: list[str] = [k for k in CORE_PROMPT_KEYS if k in all_keys]
     for k in sorted(all_keys):
-        if k not in CORE_PROMPT_KEYS:
+        if k not in CORE_PROMPT_KEYS and k not in RUNTIME_EXCLUDED_PROMPT_KEYS:
             ordered.append(k)
     return ordered
 

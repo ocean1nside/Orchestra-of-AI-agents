@@ -357,6 +357,65 @@ html, body { height: 100%; margin: 0; color: var(--text); background: var(--bg);
   cursor: pointer;
   color: var(--muted);
 }
+.prompt-panels {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 12px;
+}
+.prompt-subtabs {
+  margin-top: 12px;
+}
+.tune-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.tune-results {
+  margin-top: 12px;
+  overflow: auto;
+  flex: 1;
+  min-height: 120px;
+}
+.tune-summary {
+  padding: 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.tune-change {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #fafafa;
+}
+.tune-change h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.tune-change .meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.tune-change pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  max-height: 160px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--border);
+  padding: 8px;
+  border-radius: 6px;
+  margin: 0;
+}
+
 .mode-tab.active {
   background: #eff6ff;
   border-color: #93c5fd;

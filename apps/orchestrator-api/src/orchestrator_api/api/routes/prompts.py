@@ -9,17 +9,57 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from orchestrator_api.db.models.prompt import PromptTemplate, PromptVersion
 from orchestrator_api.db.session import get_db
+from orchestrator_api.modules.prompts.prompt_tune import apply_prompt_tune, propose_prompt_tune
 from orchestrator_api.schemas.prompts import (
     PromptCreateBody,
     PromptListItem,
     PromptListResponse,
     PromptOut,
     PromptPutBody,
+    PromptTuneApplyBody,
+    PromptTuneApplyResponse,
+    PromptTunePreviewResponse,
+    PromptTuneRequest,
     PromptVersionItem,
     PromptVersionsResponse,
 )
 
 router = APIRouter()
+
+
+@router.post("/prompts/tune", response_model=PromptTunePreviewResponse)
+async def preview_prompt_tune(body: PromptTuneRequest, db: AsyncSession = Depends(get_db)) -> PromptTunePreviewResponse:
+    """ИИ предлагает правки промптов по жалобе оператора (без сохранения)."""
+    try:
+        summary, log_entry, changes, model = await propose_prompt_tune(db, feedback=body.feedback)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Prompt tune failed: {e}") from e
+    return PromptTunePreviewResponse(
+        summary=summary,
+        log_entry=log_entry,
+        changes=changes,
+        model=model,
+    )
+
+
+@router.post("/prompts/tune/apply", response_model=PromptTuneApplyResponse)
+async def apply_prompt_tune_route(
+    body: PromptTuneApplyBody, db: AsyncSession = Depends(get_db)
+) -> PromptTuneApplyResponse:
+    """Применить предпросмотренные правки и дописать журнал tuning_log."""
+    if not body.changes and not (body.log_entry or "").strip():
+        raise HTTPException(status_code=400, detail="No changes to apply")
+    try:
+        applied = await apply_prompt_tune(db, changes=body.changes, log_entry=body.log_entry)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Apply failed: {e}") from e
+    keys = ", ".join(f"{a.prompt_key} (v{a.version})" for a in applied if a.prompt_key != "tuning_log")
+    summary = f"Сохранено: {keys}" if keys else "Обновлён журнал тюнинга"
+    return PromptTuneApplyResponse(summary=summary, applied=applied)
 
 
 @router.post("/prompts", response_model=PromptOut, status_code=201)

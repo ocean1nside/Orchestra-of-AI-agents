@@ -263,8 +263,30 @@
 Таблицы: `prompt_templates`, `prompt_versions`.  
 При миграции создаются ключи: **`system`**, **`answer_policy`**, **`fallback`**, **`channel_style`**.
 
-> **Важно:** **vendor-support-agent** сейчас читает промпты из **файлов** `prompts/*.md`, а не из этой БД.  
-> `PUT` здесь сохраняет версию в оркестраторе; чтобы агент использовал текст, нужна синхронизация в файлы/образ агента (или будущая доработка кода).
+> **Важно:** **vendor-support-agent** читает **последние версии из этой БД** при каждом ответе (`prompt_store.py`). Если в БД пусто — fallback на файлы `prompts/*.md`.  
+> Ключ **`tuning_log`** — журнал автотюнинга Studio; **не** склеивается в системный промпт ответов пользователю.
+
+---
+
+### `POST /api/v1/prompts/tune`
+
+**Назначение:** предпросмотр правок промптов по жалобе оператора (Studio → «Тюнинг»). Без сохранения.
+
+**Тело:** `{ "feedback": "что не устраивает в ответах" }`
+
+**Ответ:** `{ "summary", "log_entry", "changes": [{ "prompt_key", "action": "update"|"create", "content", "rationale" }], "model" }`
+
+**Требует:** `OPENAI_API_KEY`, опционально `PROMPT_TUNE_MODEL` (default `gpt-4o-mini`).
+
+---
+
+### `POST /api/v1/prompts/tune/apply`
+
+**Назначение:** применить массив `changes` из предпросмотра; дописать `tuning_log` из `log_entry`.
+
+**Тело:** `{ "changes": [...], "log_entry": "..." }`
+
+**Ответ:** `{ "summary", "applied": [{ "prompt_key", "action", "version", "rationale" }] }`
 
 ---
 
